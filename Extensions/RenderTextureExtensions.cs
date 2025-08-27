@@ -444,4 +444,146 @@ public static class RenderTextureExtensions
 
         return _result;
     }
+
+    public static Texture2D OptimalizeTextureFor9Slicing(this Texture2D _texture, out Vector4 _border)
+    {
+        if (_texture == null)
+        {
+            _border = default;
+            return _texture; //No texture to optimize
+        }
+
+        int _width = _texture.width;
+        int _height = _texture.height;
+
+        if (_width <= 2 || _height <= 2)
+        {
+            _border = default;
+            return _texture; //Too small to optimize
+        }
+
+        Color[] _pixels = _texture.GetPixels();
+        int _centerX = _width / 2;
+        int _centerY = _height / 2;
+
+        // Track contiguous removable duplicate rows / columns around the center.
+        int  _removeUp = _removeInDirection(_centerY, _height - 1, _areRowsSame);       // rows above center (greater y) identical to previous
+        int  _removeDown = _removeInDirection(_centerY, 0, _areRowsSame);               // rows below center (smaller y) identical to next
+        int  _removeRight = _removeInDirection(_centerX, _width - 1, _areColumnsSame);  // columns to the right of center identical
+        int _removeLeft = _removeInDirection(_centerX, 0, _areColumnsSame);             // columns to the left of center identical
+
+        int _newWidth = _width - (_removeLeft + _removeRight);
+        int _newHeight = _height - (_removeUp + _removeDown);
+
+        // No change
+        if (_newWidth == _width && _newHeight == _height)
+        {
+            _border = default;
+            return _texture;
+        }
+
+        Vector2Int _newCenterPosition = new Vector2Int(_centerX - _removeLeft, _centerY - _removeDown);
+        int _leftBorder = _newCenterPosition.x;
+        int _rightBorder = _newWidth - _newCenterPosition.x - 1;
+        int _bottomBorder = _newCenterPosition.y;
+        int _topBorder = _newHeight - _newCenterPosition.y - 1;
+
+        _border = new Vector4(_leftBorder, _bottomBorder, _rightBorder, _topBorder);
+
+        Debug.Log($"Optimized texture from {_width}x{_height} to {_newWidth}x{_newHeight}, New Center: {_newCenterPosition}, Border: L:{_leftBorder} R:{_rightBorder} B:{_bottomBorder} T:{_topBorder}");
+
+        Texture2D _newTexture = new Texture2D(_newWidth, _newHeight, _texture.format, false);
+        Color[] _newPixels = new Color[_newWidth * _newHeight];
+        
+        // Ranges of removed rows / columns
+        int _removedTopEnd = _centerY + _removeUp;
+        int _removedBottomStart = _centerY - _removeDown;
+        int _removedRightEnd = _centerX + _removeRight;
+        int _removedLeftStart = _centerX - _removeLeft;
+
+        int _newY = 0;
+
+        for (int y = 0; y < _height; y++)
+        {
+            if (_rowRemoved(y))
+            {
+                continue;
+            }
+
+            int _newX = 0;
+
+            for (int x = 0; x < _width; x++)
+            {
+                if (_columnRemoved(x))
+                {
+                    continue;
+                }
+
+                _newPixels[_newY * _newWidth + _newX] = _pixels[_getPixelIndex(x, y)];
+                _newX++;
+            }
+
+            _newY++;
+        }
+
+        _newTexture.SetPixels(_newPixels);
+        _newTexture.Apply();
+        return _newTexture;
+
+        // Check if a row is removed
+        bool _rowRemoved(int y) => (y > _centerY && y <= _removedTopEnd) || (y < _centerY && y >= _removedBottomStart);
+
+        // Check if a column is removed
+        bool _columnRemoved(int x) => (x > _centerX && x <= _removedRightEnd) || (x < _centerX && x >= _removedLeftStart);
+
+        // Count how many rows / columns can be removed in a direction
+        int _removeInDirection(int _start, int _end, System.Func<int, int, bool> _areSame)
+        {
+            int _removeCount = 0;
+
+            for (int i = _start; i != _end; i += (i < _end ? 1 : -1))
+            {
+                if (_areSame(i, i + (i < _end ? 1 : -1)))
+                {
+                    _removeCount++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return _removeCount;
+        }
+
+        // Check if two rows are identical
+        bool _areRowsSame(int y1, int y2)
+        {
+            for (int x = 0; x < _width; x++)
+            {
+                if (_pixels[_getPixelIndex(x, y1)] != _pixels[_getPixelIndex(x, y2)])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Check if two columns are identical
+        bool _areColumnsSame(int x1, int x2)
+        {
+            for (int y = 0; y < _height; y++)
+            {
+                if (_pixels[_getPixelIndex(x1, y)] != _pixels[_getPixelIndex(x2, y)])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Converts 2D coordinates to 1D index
+        int _getPixelIndex(int x, int y) => y * _width + x;
+    }
 }
