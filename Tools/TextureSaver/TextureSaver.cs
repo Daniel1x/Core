@@ -1,7 +1,6 @@
 namespace DL.TextureSaver
 {
     using System.Collections.Generic;
-    using UnityEditor;
     using UnityEngine;
     using UnityEngine.UI;
 
@@ -10,18 +9,7 @@ namespace DL.TextureSaver
     {
         private static readonly List<IMaterialModifier> materialModifiers = new List<IMaterialModifier>();
 
-        public void SaveTexture(string _directoryPath, string _filename, TextureFormat _format = TextureFormat.RGBA32) => SaveTexture(gameObject, _directoryPath, _filename, _format);
-
-        [MenuItem("CONTEXT/Image/Save Image Texture")]
-        private static void SaveImageTextureToPNG(MenuCommand _command)
-        {
-            if (_command.context is Image _img)
-            {
-                SaveTexture(_img.gameObject, _filename: "t_" + _img.gameObject.name.RemoveSpaces());
-            }
-        }
-
-        public static void SaveTexture(GameObject _objectWithImage, string _directoryPath = "Assets", string _filename = "t_New", TextureFormat _format = TextureFormat.RGBA32)
+        public static void SaveTexture(GameObject _objectWithImage, string _directoryPath = "Assets", string _filename = "t_New", TextureFormat _format = TextureFormat.RGBA32, bool _optimizeFor9Slice = false, bool _pingObject = true)
         {
 #if !UNITY_EDITOR
             Debug.LogError("Texture saving is only supported in the Unity Editor.");
@@ -69,37 +57,60 @@ namespace DL.TextureSaver
                 }
 
                 //If the material is using the default UI shader, we need to set the main texture to the sprite's texture
-                _materialInstance.SetTexture("_MainTex", _spriteTexture);
+                if (_materialInstance.HasTexture("_MainTex"))
+                {
+                    _materialInstance.SetTexture("_MainTex", _spriteTexture);
+                }
             }
 
             int _width = (int)_rectTransform.rect.width;
             int _height = (int)_rectTransform.rect.height;
 
-            RenderTexture _renderTexture = new RenderTexture(_width, _height, 0);
-            RenderTexture _previousRT = RenderTexture.active;
+            Texture2D _textureToDraw = _spriteTexture != null ? _spriteTexture : Texture2D.whiteTexture;
+            RenderTexture _renderTexture = new RenderTexture(_width, _height, 0)
+            {
+                useMipMap = false,
+                autoGenerateMips = false,
+                antiAliasing = 1,
+            };
+
+            RenderTexture _previousActiveRT = RenderTexture.active;
+            _renderTexture.Create();
             RenderTexture.active = _renderTexture;
 
-            GL.Clear(true, true, Color.clear);
-            GL.PushMatrix();
-            GL.LoadPixelMatrix(0, _width, _height, 0);
-            Graphics.DrawTexture(new Rect(0, 0, _width, _height), _spriteTexture != null ? _spriteTexture : Texture2D.whiteTexture, _materialInstance);
-            GL.PopMatrix();
+            if (_materialInstance != null)
+            {
+                Graphics.Blit(_textureToDraw, _renderTexture, _materialInstance);
+            }
+            else
+            {
+                Graphics.Blit(_textureToDraw, _renderTexture);
+            }
 
             Texture2D _texture = new Texture2D(_width, _height, _format, false);
+
+            // Read pixels from RenderTexture
             _texture.ReadPixels(new Rect(0, 0, _width, _height), 0, 0);
             _texture.Apply();
 
-            RenderTexture.active = _previousRT;
+            RenderTexture.active = _previousActiveRT;
             _renderTexture.Release();
 
-            Texture2D _optimizedTexture = _texture.OptimalizeTextureFor9Slicing(out Vector4 _border);
+            Vector4 _border = default;
 
-            if (_optimizedTexture != _texture)
+            if (_optimizeFor9Slice)
             {
-                //Destroy the old texture to free memory
-                Object.DestroyImmediate(_texture);
+                Texture2D _optimizedTexture = _texture.OptimalizeTextureFor9Slicing(out _border);
 
-                _texture = _optimizedTexture;
+                if (_optimizedTexture != _texture)
+                {
+                    //Destroy the old texture to free memory
+                    Object.DestroyImmediate(_texture);
+                    _texture = _optimizedTexture;
+
+                    _width = _texture.width;
+                    _height = _texture.height;
+                }
             }
 
             byte[] _pngData = _texture.EncodeToPNG();
@@ -114,13 +125,16 @@ namespace DL.TextureSaver
                 UnityEditor.AssetDatabase.Refresh();
 
                 //Update texture import settings to make it readable and set the correct format
-                TextureImporter _importer = TextureImporter.GetAtPath(_path) as TextureImporter;
+                var _importer = UnityEditor.AssetImporter.GetAtPath(_path) as UnityEditor.TextureImporter;
 
                 if (_importer != null)
                 {
-                    _importer.textureType = TextureImporterType.Sprite;
-                    _importer.spriteImportMode = SpriteImportMode.Single;
+                    int _maxSize = Mathf.Max(_width, _height);
+
+                    _importer.textureType = UnityEditor.TextureImporterType.Sprite;
+                    _importer.spriteImportMode = UnityEditor.SpriteImportMode.Single;
                     _importer.alphaIsTransparency = true;
+                    _importer.maxTextureSize = Mathf.NextPowerOfTwo(_maxSize);
 
                     if (_border != default)
                     {
@@ -128,6 +142,11 @@ namespace DL.TextureSaver
                     }
 
                     _importer.SaveAndReimport();
+                }
+
+                if (_pingObject)
+                {
+                    UnityEditor.EditorGUIUtility.PingObject(UnityEditor.AssetDatabase.LoadAssetAtPath<Object>(_path));
                 }
             }
             else
@@ -138,8 +157,15 @@ namespace DL.TextureSaver
             DestroyImmediate(_materialInstance);
             DestroyImmediate(_texture);
             DestroyImmediate(_renderTexture);
+
+            //Clear references
+            _materialInstance = null;
+            _texture = null;
+            _renderTexture = null;
+
+            //Force garbage collection to free memory
             Resources.UnloadUnusedAssets();
-            System.GC.Collect();
+            System.GC.Collect(0, System.GCCollectionMode.Forced, true, true);
 #endif
         }
     }

@@ -467,9 +467,9 @@ public static class RenderTextureExtensions
         int _centerY = _height / 2;
 
         // Track contiguous removable duplicate rows / columns around the center.
-        int  _removeUp = _removeInDirection(_centerY, _height - 1, _areRowsSame);       // rows above center (greater y) identical to previous
-        int  _removeDown = _removeInDirection(_centerY, 0, _areRowsSame);               // rows below center (smaller y) identical to next
-        int  _removeRight = _removeInDirection(_centerX, _width - 1, _areColumnsSame);  // columns to the right of center identical
+        int _removeUp = _removeInDirection(_centerY, _height - 1, _areRowsSame);       // rows above center (greater y) identical to previous
+        int _removeDown = _removeInDirection(_centerY, 0, _areRowsSame);               // rows below center (smaller y) identical to next
+        int _removeRight = _removeInDirection(_centerX, _width - 1, _areColumnsSame);  // columns to the right of center identical
         int _removeLeft = _removeInDirection(_centerX, 0, _areColumnsSame);             // columns to the left of center identical
 
         int _newWidth = _width - (_removeLeft + _removeRight);
@@ -494,7 +494,7 @@ public static class RenderTextureExtensions
 
         Texture2D _newTexture = new Texture2D(_newWidth, _newHeight, _texture.format, false);
         Color[] _newPixels = new Color[_newWidth * _newHeight];
-        
+
         // Ranges of removed rows / columns
         int _removedTopEnd = _centerY + _removeUp;
         int _removedBottomStart = _centerY - _removeDown;

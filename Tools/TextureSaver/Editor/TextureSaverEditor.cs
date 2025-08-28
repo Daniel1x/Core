@@ -6,19 +6,27 @@ namespace DL.TextureSaver
     [CustomEditor(typeof(TextureSaver))]
     public class TextureSaverEditor : Editor
     {
-        private string directoryPath = "Assets/SavedTextures";
-        private string filename = "SavedTexture";
-        private TextureFormat textureFormat = TextureFormat.RGBA32;
+        public static string DirectoryPath = "Assets";
+        public static string Filename = "SavedTexture";
+        public static TextureFormat Format = TextureFormat.RGBA32;
+        public static bool OptimizeFor9Slice = true;
+
+        private GameObject getObjectFromTarget() => (target as TextureSaver)?.gameObject;
 
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
             GUILayout.Space(10);
+            DrawTextureSaverSettings(getObjectFromTarget);
+        }
+
+        public static bool DrawTextureSaverSettings(System.Func<GameObject> _getObject)
+        {
             GUILayout.Label("Texture Saving Settings", EditorStyles.boldLabel);
 
             using (new GUILayout.HorizontalScope())
             {
-                directoryPath = EditorGUILayout.TextField("Directory Path", directoryPath);
+                DirectoryPath = EditorGUILayout.TextField("Directory Path", DirectoryPath);
 
                 if (GUILayout.Button("...", GUILayout.MaxWidth(30)))
                 {
@@ -28,7 +36,7 @@ namespace DL.TextureSaver
                     {
                         if (_selectedPath.StartsWith(Application.dataPath))
                         {
-                            directoryPath = "Assets" + _selectedPath.Substring(Application.dataPath.Length);
+                            DirectoryPath = "Assets" + _selectedPath.Substring(Application.dataPath.Length);
                         }
                         else
                         {
@@ -38,24 +46,27 @@ namespace DL.TextureSaver
                 }
             }
 
-            filename = EditorGUILayout.TextField("Filename", filename);
-            textureFormat = (TextureFormat)EditorGUILayout.EnumPopup("Texture Format", textureFormat);
+            Filename = EditorGUILayout.TextField("Filename", Filename);
+            Format = (TextureFormat)EditorGUILayout.EnumPopup("Texture Format", Format);
+            OptimizeFor9Slice = EditorGUILayout.Toggle("Optimize for 9-Slice", OptimizeFor9Slice);
 
-            if (GUILayout.Button("Save Texture"))
+            if (!GUILayout.Button("Save Texture"))
             {
-                if (!System.IO.Directory.Exists(directoryPath))
-                {
-                    System.IO.Directory.CreateDirectory(directoryPath);
-                    AssetDatabase.Refresh();
-                }
+                return false;
+            }
 
-                if (target is TextureSaver _textureSaver)
-                {
-                    _textureSaver.SaveTexture(directoryPath, filename, textureFormat);
-                }
-
+            if (!System.IO.Directory.Exists(DirectoryPath))
+            {
+                System.IO.Directory.CreateDirectory(DirectoryPath);
                 AssetDatabase.Refresh();
             }
+
+            if (_getObject != null && _getObject() is GameObject _target)
+            {
+                TextureSaver.SaveTexture(_target, DirectoryPath, Filename, Format, OptimizeFor9Slice);
+            }
+
+            return true;
         }
     }
 }
