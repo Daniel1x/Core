@@ -7,9 +7,16 @@ namespace DL.TextureSaver
     [RequireComponent(typeof(RectTransform), typeof(Image))]
     public class TextureSaver : MonoBehaviour
     {
+        public enum GrayScaleAdjustments
+        {
+            None = 0,
+            Average = 1,
+            Luminosity = 2,
+        }
+
         private static readonly List<IMaterialModifier> materialModifiers = new List<IMaterialModifier>();
 
-        public static void SaveTexture(GameObject _objectWithImage, string _directoryPath = "Assets", string _filename = "t_New", TextureFormat _format = TextureFormat.RGBA32, bool _optimizeFor9Slice = false, bool _pingObject = true)
+        public static void SaveTexture(GameObject _objectWithImage, string _directoryPath = "Assets", string _filename = "t_New", TextureFormat _format = TextureFormat.RGBA32, bool _optimizeFor9Slice = false, bool _pingObject = true, GrayScaleAdjustments _grayScale = GrayScaleAdjustments.None)
         {
 #if !UNITY_EDITOR
             Debug.LogError("Texture saving is only supported in the Unity Editor.");
@@ -111,6 +118,21 @@ namespace DL.TextureSaver
                     _width = _texture.width;
                     _height = _texture.height;
                 }
+            }
+
+            if (_grayScale is not GrayScaleAdjustments.None)
+            {
+                Color32[] _pixels = _texture.GetPixels32();
+                bool _useLuminosity = _grayScale is GrayScaleAdjustments.Luminosity;
+
+                for (int i = 0; i < _pixels.Length; i++)
+                {
+                    byte _gray = _pixels[i].GetGrayScale(_useLuminosity);
+                    _pixels[i] = new Color32(_gray, _gray, _gray, _pixels[i].a);
+                }
+
+                _texture.SetPixels32(_pixels);
+                _texture.Apply();
             }
 
             byte[] _pngData = _texture.EncodeToPNG();

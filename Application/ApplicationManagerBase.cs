@@ -1,6 +1,5 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Events;
 
 public abstract class ApplicationManagerBase : MonoBehaviour
 {
@@ -10,8 +9,6 @@ public abstract class ApplicationManagerBase : MonoBehaviour
         Initializing = 1,
         Initialized = 2,
     }
-
-    public static event UnityAction<ScreenResolution> OnScreenResolutionChanged = null;
 
     public static bool Exists => instance != null;
     public static InitializationState State => instance != null ? instance.initializationState : InitializationState.Uninitialized;
@@ -31,8 +28,6 @@ public abstract class ApplicationManagerBase : MonoBehaviour
     protected float[] fpsArray = null;
     protected int fpsIndex = -1;
 
-    protected ScreenResolutionChecker screenResolutionChecker = new ScreenResolutionChecker();
-
     protected virtual void Awake()
     {
         if (instance != null)
@@ -44,7 +39,6 @@ public abstract class ApplicationManagerBase : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         instance = this;
-        screenResolutionChecker.CheckForResolutionChange();
     }
 
     protected virtual IEnumerator Start()
@@ -75,11 +69,6 @@ public abstract class ApplicationManagerBase : MonoBehaviour
 
     protected virtual void Update()
     {
-        if (screenResolutionChecker.CheckForResolutionChange())
-        {
-            OnScreenResolutionChanged?.Invoke(screenResolutionChecker.Resolution);
-        }
-
         float _currentFPS = 1f / Time.unscaledDeltaTime;
 
         if (fpsArray == null || fpsArray.Length != averageOverNFrames)

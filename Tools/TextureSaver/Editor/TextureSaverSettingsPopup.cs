@@ -32,7 +32,7 @@ namespace DL.TextureSaver
         public override Vector2 GetWindowSize()
         {
             //Adjust the size to fit the content
-            int _lineCount = 6;
+            int _lineCount = 7;
             int _lineHeight = 20;
             int _width = 500;
 

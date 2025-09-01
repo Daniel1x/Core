@@ -286,4 +286,18 @@ public static class ColorExtensions
     {
         return _withAlpha ? ColorUtility.ToHtmlStringRGBA(_color) : ColorUtility.ToHtmlStringRGB(_color);
     }
+
+    public static float GetGrayScale(this Color _color, bool _usingLuminosityMethod)
+    {
+        return _usingLuminosityMethod
+            ? (_color.r * 0.299f + _color.g * 0.587f + _color.b * 0.114f)
+            : ((_color.r + _color.g + _color.b) / 3);
+    }
+
+    public static byte GetGrayScale(this Color32 _color, bool _usingLuminosityMethod)
+    {
+        return _usingLuminosityMethod
+            ? (byte)(_color.r * 0.299f + _color.g * 0.587f + _color.b * 0.114f)
+            : (byte)((_color.r + _color.g + _color.b) / 3);
+    }
 }

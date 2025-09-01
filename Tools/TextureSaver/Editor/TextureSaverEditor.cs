@@ -10,6 +10,7 @@ namespace DL.TextureSaver
         public static string Filename = "SavedTexture";
         public static TextureFormat Format = TextureFormat.RGBA32;
         public static bool OptimizeFor9Slice = true;
+        public static TextureSaver.GrayScaleAdjustments GrayScale = TextureSaver.GrayScaleAdjustments.None;
 
         private GameObject getObjectFromTarget() => (target as TextureSaver)?.gameObject;
 
@@ -49,6 +50,7 @@ namespace DL.TextureSaver
             Filename = EditorGUILayout.TextField("Filename", Filename);
             Format = (TextureFormat)EditorGUILayout.EnumPopup("Texture Format", Format);
             OptimizeFor9Slice = EditorGUILayout.Toggle("Optimize for 9-Slice", OptimizeFor9Slice);
+            GrayScale = (TextureSaver.GrayScaleAdjustments)EditorGUILayout.EnumPopup("Grayscale Adjustment", GrayScale);
 
             if (!GUILayout.Button("Save Texture"))
             {
@@ -63,7 +65,7 @@ namespace DL.TextureSaver
 
             if (_getObject != null && _getObject() is GameObject _target)
             {
-                TextureSaver.SaveTexture(_target, DirectoryPath, Filename, Format, OptimizeFor9Slice);
+                TextureSaver.SaveTexture(_target, DirectoryPath, Filename, Format, OptimizeFor9Slice, true, GrayScale);
             }
 
             return true;
