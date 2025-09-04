@@ -1,0 +1,37 @@
+#pragma kernel RenderTextureLerpMain
+
+Texture2D<float4> StartTexture;
+Texture2D<float4> EndTexture;
+RWTexture2D<float4> Result;
+
+cbuffer LerpParams
+{
+    float Progress;
+    float InverseProgress;
+    uint2 TextureSize;
+};
+
+[numthreads(16, 16, 1)]
+void RenderTextureLerpMain(uint3 id : SV_DispatchThreadID)
+{
+    uint2 xy = id.xy;
+
+    if (xy.x >= TextureSize.x || xy.y >= TextureSize.y)
+    {
+        return;
+    }
+    
+    if (Progress <= 0.0f)
+    {
+        Result[xy] = StartTexture[xy];
+        return;
+    }
+    
+    if (Progress >= 1.0f)
+    {
+        Result[xy] = EndTexture[xy];
+        return;
+    }
+        
+    Result[xy] = StartTexture[xy] * InverseProgress + EndTexture[xy] * Progress;
+}

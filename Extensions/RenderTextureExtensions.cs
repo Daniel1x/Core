@@ -11,26 +11,28 @@ public static class RenderTextureExtensions
     [System.Serializable]
     public class RenderTextureLerpController : System.IDisposable
     {
+        protected const string SHADER_KERNEL_NAME = "RenderTextureLerpMain";
         protected const string GENERIC_RT_NAME = "generic_NewLerpTexture";
-        protected const int KERNEL_ID = 0;
         protected const int THREAD_COUNT = 8;
 
         public event UnityAction<RenderTexture> OnRenderTextureCreated = null;
         ///<summary>(RenderTexture, LerpAnimationProgress, LerpProgress)</summary>
         public event UnityAction<RenderTexture, float, float> OnRenderTextureUpdate = null;
 
+        [Header("Settings")]
         public ComputeShader LerpShader = null;
         public Texture StartTexture = null;
         public Texture EndTexture = null;
         public TextureWrapMode TextureWrapMode = TextureWrapMode.Repeat;
-        public GraphicsFormat GraphicsFormat = GraphicsFormat.R32G32B32A32_UInt;
+        public GraphicsFormat GraphicsFormat = GraphicsFormat.R32G32B32A32_SFloat;
         public AnimationCurve LerpCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
 
         public RenderTexture GenericRenderTexture { get; private set; } = null;
 
-        protected List<RenderTexture> createdRenderTextures = new List<RenderTexture>();
+        protected readonly List<RenderTexture> createdRenderTextures = new List<RenderTexture>();
         protected float lerpAnimationProgress = 0f;
         protected Vector2Int size = default;
+        protected int kernelId = -1;
 
         public float LerpAnimationProgress
         {
@@ -38,24 +40,26 @@ public static class RenderTextureExtensions
             private set
             {
 #if UNITY_EDITOR
-                if (Application.isPlaying == false || GenericRenderTexture == null)
+                if (!Application.isPlaying || GenericRenderTexture == null)
                 {
                     return;
                 }
 #endif
+                value = Mathf.Clamp01(value);
 
-                lerpAnimationProgress = value;
-                float _evaluatedLerpProgress = LerpProgress;
-                LerpShader.SetFloat("Progress", _evaluatedLerpProgress);
-                LerpShader.Dispatch(KERNEL_ID, size.x / THREAD_COUNT, size.y / THREAD_COUNT, 1);
+                if (!Mathf.Approximately(lerpAnimationProgress, value))
+                {
+                    lerpAnimationProgress = value;
+                }
 
-                OnRenderTextureUpdate?.Invoke(GenericRenderTexture, lerpAnimationProgress, _evaluatedLerpProgress);
+                dispatchCompute();
             }
         }
 
-        public float LerpProgress => LerpCurve.Evaluate(LerpAnimationProgress);
-
+        public float LerpProgress => LerpCurve.Evaluate(lerpAnimationProgress);
         protected virtual float DeltaTime => Time.deltaTime;
+
+        #region Public API
 
         public void Initialize(Texture _startTexture, Texture _endTexture, float _initialProgress = 0f, UnityAction<RenderTexture> _onRenderTextureCreated = null)
         {
@@ -66,75 +70,200 @@ public static class RenderTextureExtensions
 
         public void Initialize(float _initialProgress = 0f, UnityAction<RenderTexture> _onRenderTextureCreated = null)
         {
-            if (StartTexture != null == false && EndTexture != null == false)
+            if (validateInput() == false)
             {
-                MyLog.Log($"RENDER TEXTURE LERP CONTROLLER :: Invalid textures!");
                 return;
             }
 
-            size = StartTexture.Size();
+            obtainKernel();
 
-            if (size != EndTexture.Size())
+            if (kernelId < 0)
             {
-                MyLog.Log($"RENDER TEXTURE LERP CONTROLLER :: Cannot lerp textures with different sizes!");
+                MyLog.Log("RENDER TEXTURE LERP CONTROLLER :: Kernel 'CSMain' not found!", Color.yellow);
                 return;
             }
 
-            GenericRenderTexture = new RenderTexture(size.x, size.y, 0, GraphicsFormat).WithName("generic_NewLerpTexture");
-            GenericRenderTexture.enableRandomWrite = true;
-            GenericRenderTexture.wrapMode = TextureWrapMode;
-            GenericRenderTexture.Create();
+            allocateRenderTexture(_onRenderTextureCreated);
 
-            createdRenderTextures.AddIfNotContains(GenericRenderTexture);
+            if (GenericRenderTexture == null)
+            {
+                MyLog.Log("RENDER TEXTURE LERP CONTROLLER :: Failed to create RenderTexture!", Color.red);
+                return;
+            }
 
-            _onRenderTextureCreated?.Invoke(GenericRenderTexture);
-            OnRenderTextureCreated?.Invoke(GenericRenderTexture);
-
-            LerpShader.SetTexture(0, "Result", GenericRenderTexture);
-            LerpShader.SetTexture(0, "StartTexture", StartTexture);
-            LerpShader.SetTexture(0, "EndTexture", EndTexture);
+            bindResources();
 
             LerpAnimationProgress = _initialProgress;
-
             tryToClearOldRenderTextures();
         }
 
         public IEnumerator Lerp(float _duration, UnityAction _onComplete = null)
         {
-            if (_duration <= 0)
+            if (_duration <= 0f)
             {
+                SetProgress(1f);
                 _onComplete?.Invoke();
                 yield break;
             }
 
             float _timeMultiplier = 1f / _duration;
             float _internalProgress = 0f;
-
-            LerpAnimationProgress = _internalProgress;
+            SetProgress(0f);
 
             while (_internalProgress < 1f)
             {
                 yield return null;
                 _internalProgress += DeltaTime * _timeMultiplier;
-                LerpAnimationProgress = _internalProgress.ClampMax(1f);
+                SetProgress(_internalProgress);
             }
 
+            SetProgress(1f);
             _onComplete?.Invoke();
+        }
+
+        public void SetProgress(float _value)
+        {
+            LerpAnimationProgress = _value;
+        }
+
+        public void ForceUpdate()
+        {
+            dispatchCompute();
         }
 
         public void Dispose()
         {
             tryToClearAllGeneratedTextures();
             lerpAnimationProgress = 0f;
+            GenericRenderTexture = null;
+        }
+
+        #endregion
+
+        #region Internal
+
+        private bool validateInput()
+        {
+            if (LerpShader == null)
+            {
+                MyLog.Log("RENDER TEXTURE LERP CONTROLLER :: Missing ComputeShader!", Color.red);
+                return false;
+            }
+
+            if (StartTexture == null || EndTexture == null)
+            {
+                MyLog.Log("RENDER TEXTURE LERP CONTROLLER :: Start or End texture is null!", Color.red);
+                return false;
+            }
+
+            size = StartTexture.Size();
+
+            if (size.x <= 0 || size.y <= 0)
+            {
+                MyLog.Log("RENDER TEXTURE LERP CONTROLLER :: Invalid texture size!", Color.red);
+                return false;
+            }
+
+            if (size != EndTexture.Size())
+            {
+                MyLog.Log("RENDER TEXTURE LERP CONTROLLER :: Cannot lerp textures with different sizes!", Color.red);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void obtainKernel()
+        {
+            if (LerpShader == null)
+            {
+                kernelId = -1;
+                return;
+            }
+
+            try
+            {
+                kernelId = LerpShader.FindKernel(SHADER_KERNEL_NAME);
+            }
+            catch
+            {
+                kernelId = -1;
+            }
+        }
+
+        private void allocateRenderTexture(UnityAction<RenderTexture> _onRenderTextureCreated = null)
+        {
+            if (GenericRenderTexture != null)
+            {
+                if (GenericRenderTexture.IsCreated())
+                {
+                    GenericRenderTexture.Release();
+                }
+
+                GenericRenderTexture.ClearSpawnedRenderTexture(GENERIC_RT_NAME);
+            }
+
+            GenericRenderTexture = new RenderTexture(size.x, size.y, 0)
+            {
+                enableRandomWrite = true,
+                graphicsFormat = GraphicsFormat,
+                wrapMode = TextureWrapMode,
+                name = GENERIC_RT_NAME
+            };
+
+            GenericRenderTexture.Create();
+            createdRenderTextures.AddIfNotContains(GenericRenderTexture);
+
+            _onRenderTextureCreated?.Invoke(GenericRenderTexture);
+            OnRenderTextureCreated?.Invoke(GenericRenderTexture);
+        }
+
+        private void bindResources()
+        {
+            if (LerpShader == null || kernelId < 0)
+            {
+                return;
+            }
+
+            LerpShader.SetTexture(kernelId, "Result", GenericRenderTexture);
+            LerpShader.SetTexture(kernelId, "StartTexture", StartTexture);
+            LerpShader.SetTexture(kernelId, "EndTexture", EndTexture);
+        }
+
+        private void dispatchCompute()
+        {
+            if (LerpShader == null || GenericRenderTexture == null || kernelId < 0)
+            {
+                return;
+            }
+
+            float _evaluated = Mathf.Clamp01(LerpProgress);
+            float _inverseEvaluated = 1f - _evaluated;
+
+            LerpShader.SetFloat("Progress", _evaluated);
+            LerpShader.SetFloat("InverseProgress", _inverseEvaluated);
+            LerpShader.SetInts("TextureSize", size.x, size.y);
+
+            int _groupsX = (size.x + THREAD_COUNT - 1) / THREAD_COUNT;
+            int _groupsY = (size.y + THREAD_COUNT - 1) / THREAD_COUNT;
+
+            LerpShader.Dispatch(kernelId, _groupsX, _groupsY, 1);
+
+            OnRenderTextureUpdate?.Invoke(GenericRenderTexture, lerpAnimationProgress, _evaluated);
         }
 
         protected void tryToClearOldRenderTextures()
         {
             int _count = createdRenderTextures.Count;
 
-            for (int i = 0; i < _count; i++)
+            for (int i = _count - 1; i >= 0; i--)
             {
                 RenderTexture _rt = createdRenderTextures[i];
+
+                if (_rt == null)
+                {
+                    continue;
+                }
 
                 if (_rt != GenericRenderTexture
                     && _rt != StartTexture
@@ -142,6 +271,8 @@ public static class RenderTextureExtensions
                 {
                     _rt.ClearSpawnedRenderTexture(GENERIC_RT_NAME);
                 }
+
+                createdRenderTextures.RemoveAt(i);
             }
         }
 
@@ -151,9 +282,20 @@ public static class RenderTextureExtensions
 
             for (int i = 0; i < _count; i++)
             {
-                createdRenderTextures[i].ClearSpawnedRenderTexture(GENERIC_RT_NAME);
+                RenderTexture _rt = createdRenderTextures[i];
+
+                if (_rt == null)
+                {
+                    continue;
+                }
+
+                _rt.ClearSpawnedRenderTexture(GENERIC_RT_NAME);
             }
+
+            createdRenderTextures.Clear();
         }
+
+        #endregion
     }
 
     [System.Serializable]
@@ -280,7 +422,7 @@ public static class RenderTextureExtensions
             }
         }
 #else
-            Object.Destroy(_renderTexture);
+        Object.Destroy(_renderTexture);
 #endif
     }
 
