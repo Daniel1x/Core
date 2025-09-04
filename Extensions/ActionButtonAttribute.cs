@@ -6,9 +6,11 @@ using UnityEngine;
 public class ActionButtonAttribute : PropertyAttribute
 {
     public string ButtonName { get; private set; }
+    public bool RuntimeOnly { get; private set; }
 
-    public ActionButtonAttribute(string buttonName = null)
+    public ActionButtonAttribute(string _buttonName = null, bool _runtimeOnly = true)
     {
-        ButtonName = buttonName;
+        ButtonName = _buttonName;
+        RuntimeOnly = _runtimeOnly;
     }
 }

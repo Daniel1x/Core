@@ -17,10 +17,18 @@ public class ActionButtonEditor : Editor
 
         foreach (var method in methods)
         {
-            var attr = (ActionButtonAttribute)method.GetCustomAttributes(typeof(ActionButtonAttribute), true)[0];
-            string buttonName = string.IsNullOrEmpty(attr.ButtonName) ? method.Name : attr.ButtonName;
+            ActionButtonAttribute _attr = (ActionButtonAttribute)method.GetCustomAttributes(typeof(ActionButtonAttribute), true)[0];
 
-            if (GUILayout.Button(buttonName))
+            if (_attr.RuntimeOnly && Application.isPlaying == false)
+            {
+                continue;
+            }
+
+            string _buttonName = string.IsNullOrEmpty(_attr.ButtonName)
+                ? method.Name
+                : _attr.ButtonName;
+
+            if (GUILayout.Button(_buttonName))
             {
                 method.Invoke(target, null);
             }
