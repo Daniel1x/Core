@@ -10,6 +10,14 @@ public class Rotator : MonoBehaviour
         set => rotationSpeed = value;
     }
 
+    private void Start()
+    {
+        if (rotationSpeed != Vector3.zero)
+        {
+            transform.Rotate(UnityEngine.Random.value * 360f * rotationSpeed);
+        }
+    }
+
     private void Update()
     {
         transform.Rotate(rotationSpeed * Time.deltaTime);
