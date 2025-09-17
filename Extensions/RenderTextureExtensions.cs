@@ -454,7 +454,7 @@ public static class RenderTextureExtensions
             Object.DestroyImmediate(_renderTexture);
         }
 #else
-        UnityEngine.Object.Destroy(_rt);
+        UnityEngine.Object.Destroy(_renderTexture);
 #endif
     }
 

@@ -6,7 +6,6 @@ namespace DL.AssetLoading
 #if UNITY_EDITOR
     using UnityEditor;
     using UnityEditor.SceneManagement;
-    using Unity.VisualScripting;
 #endif
 
     [ExecuteAlways]
@@ -75,7 +74,7 @@ namespace DL.AssetLoading
                 return null;
             }
 
-            NotSavableObject _notSavable = _object.GetOrAddComponent<NotSavableObject>();
+            NotSavableObject _notSavable = _object.GetOrAddComponent<NotSavableObject>(out _);
             _notSavable.destroyOnPrefabSave = _destroyOnPrefabSave;
             _notSavable.destroyOnSceneSave = _destroyOnSceneSave;
             _notSavable.destroyOnPlayModeChange = _destroyOnPlayModeChange;
