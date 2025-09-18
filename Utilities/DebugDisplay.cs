@@ -3,16 +3,15 @@ using UnityEngine.InputSystem;
 
 public class DebugDisplay : MonoBehaviour
 {
-    // Toggle menu (default: Escape)
+    private const int MIN_FPS = 15;
+    private const int MAX_FPS = 240;
+
     [SerializeField] private InputAction action = new InputAction(type: InputActionType.Button, binding: "<Keyboard>/escape");
 
     [Header("Settings")]
     [SerializeField] private bool vsyncOn = true;
     [SerializeField, Range(15, 240)] private int targetFrameRate = 60;
     [SerializeField, Range(0.1f, 10f)] private float guiScale = 1f;
-
-    private const int MinFps = 15;
-    private const int MaxFps = 240;
 
     private bool isVisible = false;
 
@@ -22,7 +21,7 @@ public class DebugDisplay : MonoBehaviour
         action.performed += toggleDebugDisplay;
 
         QualitySettings.vSyncCount = vsyncOn ? 1 : 0;
-        ApplyTargetFrameRate(targetFrameRate);
+        applyTargetFrameRate(targetFrameRate);
     }
 
     private void OnDisable()
@@ -36,112 +35,99 @@ public class DebugDisplay : MonoBehaviour
         isVisible = !isVisible;
     }
 
-    private void ApplyTargetFrameRate(int fps)
+    private void applyTargetFrameRate(int _fps)
     {
-        targetFrameRate = Mathf.Clamp(fps, MinFps, MaxFps);
-        if (QualitySettings.vSyncCount == 0)
-        {
-            Application.targetFrameRate = targetFrameRate;
-        }
-        else
-        {
-            // Przy w³¹czonym VSync Application.targetFrameRate bywa ignorowane
-            Application.targetFrameRate = -1;
-        }
+        targetFrameRate = Mathf.Clamp(_fps, MIN_FPS, MAX_FPS);
+
+        Application.targetFrameRate = QualitySettings.vSyncCount == 0
+            ? targetFrameRate
+            : -1;
     }
 
     private void OnGUI()
     {
-        if (!isVisible) return;
-
-        // Skala GUI
-        float s = Mathf.Max(0.1f, guiScale);
-
-        int baseLabelFont = 16;
-        float basePanelWidth = 300f;
-        float baseLineH = 28f;
-        float basePad = 10f;
-
-        int labelFont = Mathf.RoundToInt(baseLabelFont * s);
-        float panelWidth = basePanelWidth * s;
-        float lineH = baseLineH * s;
-        float pad = basePad * s;
-
-        // Style
-        var labelStyle = new GUIStyle(GUI.skin.label)
+        if (!isVisible)
         {
-            alignment = TextAnchor.UpperLeft, // lewy górny róg (¿eby tekst by³ pewnie widoczny)
-            padding = new RectOffset(Mathf.RoundToInt(8 * s), Mathf.RoundToInt(8 * s), Mathf.RoundToInt(6 * s), Mathf.RoundToInt(6 * s)),
-            fontSize = labelFont,
+            return;
+        }
+
+        float _scale = Mathf.Max(0.1f, guiScale);
+
+        int _baseLabelFont = 16;
+        float _basePanelWidth = 300f;
+        float _baseLineH = 28f;
+        float _basePad = 10f;
+
+        int _labelFont = Mathf.RoundToInt(_baseLabelFont * _scale);
+        float _panelWidth = _basePanelWidth * _scale;
+        float _lineH = _baseLineH * _scale;
+        float _pad = _basePad * _scale;
+
+        GUIStyle _labelStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.UpperLeft,
+            padding = new RectOffset(Mathf.RoundToInt(8 * _scale), Mathf.RoundToInt(8 * _scale), Mathf.RoundToInt(6 * _scale), Mathf.RoundToInt(6 * _scale)),
+            fontSize = _labelFont,
             wordWrap = false
         };
-        labelStyle.normal.textColor = Color.white;
 
-        var buttonStyle = new GUIStyle(GUI.skin.button)
+        _labelStyle.normal.textColor = Color.white;
+
+        GUIStyle _buttonStyle = new GUIStyle(GUI.skin.button)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.RoundToInt(labelFont * 0.9f)
+            fontSize = Mathf.RoundToInt(_labelFont * 0.9f)
         };
 
-        // Pude³ko
-        // 6 linii: FPS, VSync toggle, "Target Frame Rate", slider, "Target:", hint (opcjonalnie)
-        float lines = 6f;
-        Rect boxRect = new Rect(Screen.width - panelWidth - pad, pad, panelWidth, lines * lineH + pad);
-        GUI.Box(boxRect, GUIContent.none);
+        float _lines = 6f;
+        Rect _boxRect = new Rect(Screen.width - _panelWidth - _pad, _pad, _panelWidth, _lines * _lineH + _pad);
+        GUI.Box(_boxRect, GUIContent.none);
 
-        // Pozycje
-        float x = boxRect.x + (8f * s);
-        float y = boxRect.y + (6f * s);
-        float w = panelWidth - (16f * s);
+        float _x = _boxRect.x + (8f * _scale);
+        float _y = _boxRect.y + (6f * _scale);
+        float _w = _panelWidth - (16f * _scale);
 
-        // FPS
-        float dt = Mathf.Max(1e-5f, Time.unscaledDeltaTime);
-        float fps = 1f / dt;
-        GUI.Label(new Rect(x, y, w, lineH), $"FPS: {fps:F1}", labelStyle);
-        y += lineH;
+        float _dt = Mathf.Max(1e-5f, Time.unscaledDeltaTime);
+        float _fps = 1f / _dt;
+        GUI.Label(new Rect(_x, _y, _w, _lineH), $"FPS: {_fps:F1}", _labelStyle);
+        _y += _lineH;
 
-        // VSync toggle
-        bool newVsync = GUI.Toggle(new Rect(x, y, w, lineH), vsyncOn, $"VSync: {(vsyncOn ? "On" : "Off")}", buttonStyle);
-        if (newVsync != vsyncOn)
+        bool _newVsync = GUI.Toggle(new Rect(_x, _y, _w, _lineH), vsyncOn, $"VSync: {(vsyncOn ? "On" : "Off")}", _buttonStyle);
+
+        if (_newVsync != vsyncOn)
         {
-            vsyncOn = newVsync;
+            vsyncOn = _newVsync;
             QualitySettings.vSyncCount = vsyncOn ? 1 : 0;
-            ApplyTargetFrameRate(targetFrameRate);
+            applyTargetFrameRate(targetFrameRate);
         }
-        y += lineH;
 
-        // Nag³ówek
-        GUI.Label(new Rect(x, y, w, lineH), "Target Frame Rate", labelStyle);
-        y += lineH * 0.9f;
+        _y += _lineH;
+        GUI.Label(new Rect(_x, _y, _w, _lineH), "Target Frame Rate", _labelStyle);
+        _y += _lineH * 0.9f;
 
-        // Slider (bez przycisków +/-) + wartoœæ po prawej
-        bool prevEnabled = GUI.enabled;
+        bool _prevEnabled = GUI.enabled;
         GUI.enabled = !vsyncOn;
 
-        float sliderW = w - (80f * s);
-        int newFps = Mathf.RoundToInt(GUI.HorizontalSlider(new Rect(x, y, sliderW, lineH), targetFrameRate, MinFps, MaxFps));
+        float _sliderW = _w - (80f * _scale);
+        int _newFps = Mathf.RoundToInt(GUI.HorizontalSlider(new Rect(_x, _y, _sliderW, _lineH), targetFrameRate, MIN_FPS, MAX_FPS));
 
-        // Wyœwietl wartoœæ targetu
-        GUI.Label(new Rect(x + sliderW + (8f * s), y, w - sliderW - (8f * s), lineH), $"{newFps} FPS", labelStyle);
+        GUI.Label(new Rect(_x + _sliderW + (8f * _scale), _y, _w - _sliderW - (8f * _scale), _lineH), $"{_newFps} FPS", _labelStyle);
 
-        if (newFps != targetFrameRate)
+        if (_newFps != targetFrameRate)
         {
-            ApplyTargetFrameRate(newFps);
+            applyTargetFrameRate(_newFps);
         }
-        y += lineH;
 
-        GUI.enabled = prevEnabled;
+        _y += _lineH;
+        GUI.enabled = _prevEnabled;
+        GUI.Label(new Rect(_x, _y, _w, _lineH), $"Target: {targetFrameRate} FPS", _labelStyle);
+        _y += _lineH;
 
-        // Bie¿¹cy target (zawsze pokazuj)
-        GUI.Label(new Rect(x, y, w, lineH), $"Target: {targetFrameRate} FPS", labelStyle);
-        y += lineH;
-
-        // Hint
         if (vsyncOn)
         {
-            var hint = new GUIStyle(labelStyle) { fontSize = Mathf.RoundToInt(labelFont * 0.85f) };
-            hint.normal.textColor = new Color(1f, 0.85f, 0.4f);
-            GUI.Label(new Rect(x, y, w, lineH), "VSync overrides target FPS", hint);
+            GUIStyle _hint = new GUIStyle(_labelStyle) { fontSize = Mathf.RoundToInt(_labelFont * 0.85f) };
+            _hint.normal.textColor = new Color(1f, 0.85f, 0.4f);
+            GUI.Label(new Rect(_x, _y, _w, _lineH), "VSync overrides target FPS", _hint);
         }
     }
 }
