@@ -168,28 +168,10 @@ public static class EditorUtilities
 #endif
     }
 
-    public static bool IsDirty(int _instanceID)
-    {
-#if UNITY_EDITOR
-        return UnityEditor.EditorUtility.IsDirty(_instanceID);
-#else
-        return false;
-#endif
-    }
-
     public static int GetDirtyCount(Object _target)
     {
 #if UNITY_EDITOR
         return UnityEditor.EditorUtility.GetDirtyCount(_target);
-#else
-        return 0;
-#endif
-    }
-
-    public static int GetDirtyCount(int _instanceID)
-    {
-#if UNITY_EDITOR
-        return UnityEditor.EditorUtility.GetDirtyCount(_instanceID);
 #else
         return 0;
 #endif
