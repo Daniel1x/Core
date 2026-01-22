@@ -158,6 +158,30 @@ public static class CollectionsExtensions
         return _count <= 0 || _index >= _count;
     }
 
+    public static int GetRandomID<T>(this List<T> _list)
+    {
+        int _count = _list.Count;
+
+        if (_count > 0)
+        {
+            return UnityEngine.Random.Range(0, _count);
+        }
+
+        return -1;
+    }
+
+    public static int GetRandomID<T>(this T[] _array)
+    {
+        int _count = _array.Length;
+
+        if (_count > 0)
+        {
+            return UnityEngine.Random.Range(0, _count);
+        }
+
+        return -1;
+    }
+
     public static T GetRandom<T>(this List<T> _list) => _list.GetRandom(out _);
 
     public static T GetRandom<T>(this List<T> _list, out int _selectedID)

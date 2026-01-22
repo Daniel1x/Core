@@ -696,4 +696,20 @@ public static class VectorExtensions
             + Mathf.Abs(_from.y - _to.y)
             + Mathf.Abs(_from.z - _to.z);
     }
+
+    public static bool IsValidGridPosition(this Vector2Int _position, Vector2Int _gridSize)
+    {
+        return _position.x >= 0 && _position.x < _gridSize.x
+            && _position.y >= 0 && _position.y < _gridSize.y;
+    }
+
+    public static int GetGridIndex(this Vector2Int _position, int _gridWidth)
+    {
+        return _position.y * _gridWidth + _position.x;
+    }
+
+    public static Vector2Int GetRandomPointOnGrid(this Vector2Int _gridSize)
+    {
+        return new Vector2Int(UnityEngine.Random.Range(0, _gridSize.x), UnityEngine.Random.Range(0, _gridSize.y));
+    }
 }

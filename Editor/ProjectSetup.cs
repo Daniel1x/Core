@@ -32,7 +32,7 @@ namespace DL
 
         public static void CreateDefaultFolders(string _root, params string[] _folders)
         {
-            string _fullPath = Path.Combine(Application.dataPath, _root);
+            string _fullPath = Path.Combine(UnityEngine.Application.dataPath, _root);
 
             foreach (var _folder in _folders)
             {

@@ -177,6 +177,12 @@ public static class MathExtensions
         }
     }
 
+    public static float RoundToClosestDecimalPlace(this float value, int decimalPlaces)
+    {
+        float _multiplier = Mathf.Pow(10f, decimalPlaces);
+        return Mathf.Round(value * _multiplier) / _multiplier;
+    }
+
     public static bool AbsGreaterThan(this float _thisValue, float _otherPositiveValue)
     {
         return Mathf.Abs(_thisValue) > _otherPositiveValue;
