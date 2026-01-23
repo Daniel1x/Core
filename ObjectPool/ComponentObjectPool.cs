@@ -3,49 +3,34 @@ namespace DL.ObjectPool
     using System.Collections.Generic;
     using UnityEngine;
     using UnityEngine.AddressableAssets;
+    using DL.Behaviours;
 
     [System.Serializable]
-    public class ComponentObjectPool<IComponent> : ComponentObjectPool<IComponent, int> where IComponent : Component, IPoolObject<IComponent>
-    {
-        [SerializeField] private int key;
-
-        public override int Key => key;
-
-        public ComponentObjectPool(int _key, AssetReference _assetReference, int _initialSize = 0) : base(_assetReference, _initialSize)
-        {
-            key = _key;
-
-            if (parent != null)
-            {
-                parent.name += $"[{key}]";
-            }
-        }
-    }
-
-    [System.Serializable]
-    public abstract class ComponentObjectPool<IComponent, IKey> : IObjectPool<IComponent, IKey>
+    public class ComponentObjectPool<IComponent, IKey> : IObjectPool<IComponent, IKey>
         where IComponent : Component, IPoolObject<IComponent>
     {
-        protected Transform parent = null;
-        protected AssetReference assetReference = null;
-        protected Queue<IPoolEntry<IComponent>> availableObjects = null;
-        protected HashSet<IPoolEntry<IComponent>> inUseObjects = null;
+        protected Transform parent;
+        protected AssetReference assetReference;
+        protected Queue<IPoolEntry<IComponent>> availableObjects;
+        protected HashSet<IPoolEntry<IComponent>> inUseObjects;
+        protected IKey key;
 
-        public abstract IKey Key { get; }
+        public IKey Key => key;
 
-        public ComponentObjectPool(AssetReference _assetReference, int _initialSize = 0)
+        public ComponentObjectPool(IKey _key, AssetReference _assetReference, int _initialSize = 0)
         {
             if (_assetReference == null || !_assetReference.RuntimeKeyIsValid())
             {
                 throw new System.ArgumentException("Invalid AssetReference provided for pool initialization.", nameof(_assetReference));
             }
 
-            GameObject _parentObject = new GameObject($"ComponentObjectPool<{typeof(IComponent).Name}>");
+            GameObject _parentObject = new GameObject($"ComponentObjectPool<{typeof(IComponent).Name}>[{_key}]");
             Object.DontDestroyOnLoad(_parentObject);
             parent = _parentObject.transform;
-            var _behaviour = _parentObject.AddComponent<MonoBehaviourEventCaller>();
+            var _behaviour = _parentObject.AddComponent<OnDestroyEventCaller>();
             _behaviour.OnBehaviourDestroyed += onParentBehaviourDestroyed;
 
+            key = _key;
             assetReference = _assetReference;
             availableObjects = new Queue<IPoolEntry<IComponent>>(_initialSize);
             inUseObjects = new HashSet<IPoolEntry<IComponent>>(_initialSize);
@@ -119,8 +104,15 @@ namespace DL.ObjectPool
         {
             foreach (IPoolEntry<IComponent> _poolEntry in availableObjects)
             {
-                _poolEntry.Component.OnDestroyed -= onEntryDestroyed;
-                Object.Destroy(_poolEntry.GameObject);
+                if (_poolEntry.Component != null)
+                {
+                    _poolEntry.Component.OnDestroyed -= onEntryDestroyed;
+                }
+
+                if (_poolEntry.GameObject != null)
+                {
+                    Object.Destroy(_poolEntry.GameObject);
+                }
             }
 
             availableObjects.Clear();
@@ -132,8 +124,15 @@ namespace DL.ObjectPool
 
             foreach (IPoolEntry<IComponent> _poolEntry in inUseObjects)
             {
-                _poolEntry.Component.OnDestroyed -= onEntryDestroyed;
-                Object.Destroy(_poolEntry.GameObject);
+                if (_poolEntry.Component != null)
+                {
+                    _poolEntry.Component.OnDestroyed -= onEntryDestroyed;
+                }
+
+                if (_poolEntry.GameObject != null)
+                {
+                    Object.Destroy(_poolEntry.GameObject);
+                }
             }
 
             inUseObjects.Clear();
@@ -141,8 +140,6 @@ namespace DL.ObjectPool
 
         public void ClearPool()
         {
-            Debug.Log($"Clearing object pool for key {Key}. Total objects: {availableObjects.Count + inUseObjects.Count}. Parent: {parent?.name}");
-
             UnloadObjects(true);
             inUseObjects.Clear();
         }
@@ -165,7 +162,7 @@ namespace DL.ObjectPool
             inUseObjects.Clear();
         }
 
-        private void onParentBehaviourDestroyed(MonoBehaviourEventCaller _caller)
+        private void onParentBehaviourDestroyed(OnDestroyEventCaller _caller)
         {
             ClearPool();
 
@@ -182,7 +179,7 @@ namespace DL.ObjectPool
             _loadedGameObject.SetActive(false);
 
             var _newEntry = new IPoolEntry<IComponent>(_loadedGameObject);
-            _newEntry.Component.InitializePoolObject(_newEntry);
+            _newEntry.Component.InitializePoolObject(_newEntry, this);
             _newEntry.Component.OnDestroyed += onEntryDestroyed;
 
             return _newEntry;

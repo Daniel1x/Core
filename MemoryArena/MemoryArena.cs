@@ -101,8 +101,8 @@ public unsafe class MemoryArena : IDisposable
     /// at least the minimum alignment. Defaults to 16 bytes.</param>
     public MemoryArena(int _sizeInBytes, int _alignmentBytes = 16)
     {
-        capacityPerChunk = Mathf.NextPowerOfTwo(_sizeInBytes.ClampMin(MIN_CHUNK_SIZE));
-        alignment = Mathf.NextPowerOfTwo(_alignmentBytes.ClampMin(MIN_ALIGNMENT));
+        capacityPerChunk = Mathf.NextPowerOfTwo(clampMin(_sizeInBytes, MIN_CHUNK_SIZE));
+        alignment = Mathf.NextPowerOfTwo(clampMin(_sizeInBytes, MIN_ALIGNMENT));
 
         // Allocate first chunk immediately.
         allocateNewChunk();
@@ -309,5 +309,16 @@ public unsafe class MemoryArena : IDisposable
     {
         int _mask = alignment - 1;
         return (_value + _mask) & ~_mask;
+    }
+
+    /// <summary>
+    /// Returns the specified value if it is greater than or equal to the minimum; otherwise, returns the minimum.
+    /// </summary>
+    /// <param name="_value">The value to compare against the minimum.</param>
+    /// <param name="_min">The minimum value to clamp to.</param>
+    /// <returns>The clamped value.</returns>
+    private static int clampMin(int _value, int _min)
+    {
+        return _value < _min ? _min : _value;
     }
 }

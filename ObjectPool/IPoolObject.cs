@@ -7,8 +7,9 @@ namespace DL.ObjectPool
         public event System.Action<IPoolEntry<T>> OnDestroyed;
 
         public IPoolEntry<T> Entry { get; }
+        public IObjectPool<T> Pool { get; }
 
-        public void InitializePoolObject(IPoolEntry<T> _entry);
+        public void InitializePoolObject(IPoolEntry<T> _entry, IObjectPool<T> _pool);
         public void ResetPoolObject();
     }
 }
