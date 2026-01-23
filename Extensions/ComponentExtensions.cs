@@ -718,7 +718,7 @@ public static class ComponentExtensions
         UnityEngine.Object.Destroy(_component.gameObject);
     }
 
-    public static void SetExplicitNavigationInNeighbours<T>(this T _thisSelectable) where T : Selectable
+    public static void SetExplicitNavigationInNeighbors<T>(this T _thisSelectable) where T : Selectable
     {
         if (_thisSelectable == null)
         {
@@ -726,40 +726,40 @@ public static class ComponentExtensions
         }
 
         Navigation _navi = _thisSelectable.navigation;
-        Selectable _neighbourSelectable = _navi.selectOnUp;
+        Selectable _neighborSelectable = _navi.selectOnUp;
 
-        if (_neighbourSelectable != null)
+        if (_neighborSelectable != null)
         {
-            Navigation _itemNavi = _neighbourSelectable.navigation;
+            Navigation _itemNavi = _neighborSelectable.navigation;
             _itemNavi.selectOnDown = _thisSelectable;
-            _neighbourSelectable.navigation = _itemNavi;
+            _neighborSelectable.navigation = _itemNavi;
         }
 
-        _neighbourSelectable = _navi.selectOnDown;
+        _neighborSelectable = _navi.selectOnDown;
 
-        if (_neighbourSelectable != null)
+        if (_neighborSelectable != null)
         {
-            Navigation _itemNavi = _neighbourSelectable.navigation;
+            Navigation _itemNavi = _neighborSelectable.navigation;
             _itemNavi.selectOnUp = _thisSelectable;
-            _neighbourSelectable.navigation = _itemNavi;
+            _neighborSelectable.navigation = _itemNavi;
         }
 
-        _neighbourSelectable = _navi.selectOnRight;
+        _neighborSelectable = _navi.selectOnRight;
 
-        if (_neighbourSelectable != null)
+        if (_neighborSelectable != null)
         {
-            Navigation _itemNavi = _neighbourSelectable.navigation;
+            Navigation _itemNavi = _neighborSelectable.navigation;
             _itemNavi.selectOnLeft = _thisSelectable;
-            _neighbourSelectable.navigation = _itemNavi;
+            _neighborSelectable.navigation = _itemNavi;
         }
 
-        _neighbourSelectable = _navi.selectOnLeft;
+        _neighborSelectable = _navi.selectOnLeft;
 
-        if (_neighbourSelectable != null)
+        if (_neighborSelectable != null)
         {
-            Navigation _itemNavi = _neighbourSelectable.navigation;
+            Navigation _itemNavi = _neighborSelectable.navigation;
             _itemNavi.selectOnRight = _thisSelectable;
-            _neighbourSelectable.navigation = _itemNavi;
+            _neighborSelectable.navigation = _itemNavi;
         }
     }
 
