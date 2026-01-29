@@ -1,11 +1,17 @@
 using UnityEngine;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.ResourceProviders;
+using UnityEngine.SceneManagement;
 
 public class Bootstrapper : MonoBehaviour
 {
-    [SerializeField, Min(0)] private int sceneToLoadID = 1;
+    [SerializeField] private AssetReference startScene = new();
 
     private void Start()
     {
-        UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(sceneToLoadID);
+        if (startScene.RuntimeKeyIsValid())
+        {
+            Addressables.LoadSceneAsync(startScene, LoadSceneMode.Single, SceneReleaseMode.ReleaseSceneWhenSceneUnloaded);
+        }
     }
 }
