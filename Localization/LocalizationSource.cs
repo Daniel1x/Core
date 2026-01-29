@@ -79,6 +79,7 @@ namespace DL.Localization
         [ContextMenu("Adjust Array Sizes To Language Count")]
         public void AdjustArraySizesToLanguageCount()
         {
+#if UNITY_EDITOR
             bool _anyChanged = false;
             int _languageCount = Languages.LanguageCount;
 
@@ -95,7 +96,6 @@ namespace DL.Localization
                 _anyChanged = true;
             }
 
-#if UNITY_EDITOR
             if (_anyChanged)
             {
                 UnityEditor.EditorUtility.SetDirty(this);
