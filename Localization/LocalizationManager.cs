@@ -10,7 +10,7 @@ namespace DL.Localization
 
         public static string GetTranslation(ILocalizationKey _key)
         {
-            return _key != null ? GetTranslation(_key.Key) : string.Empty;
+            return _key != null ? GetTranslation(_key.LocalizationKey) : string.Empty;
         }
 
         public static string GetTranslation(string _key)
@@ -22,7 +22,7 @@ namespace DL.Localization
 
             return localizationSource.HasKey(_key, out LocalizationData _data)
                 ? _data.GetLocalization(localizationSource.LanguageList.SelectedLanguageIndex)
-                : string.Empty;
+                : $"Key not found: {_key}";
         }
 
         public static void SetLocalizationSource(LocalizationSource _source)
