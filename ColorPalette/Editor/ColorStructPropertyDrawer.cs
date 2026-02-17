@@ -42,7 +42,7 @@ namespace DL.ColorPalette.Editor
             EditorGUI.EndProperty();
         }
 
-        protected static void drawColorProperty(SerializedProperty _property, Rect _rect, int _colorID)
+        protected void drawColorProperty(SerializedProperty _property, Rect _rect, int _colorID)
         {
             SerializedProperty _colorProp = _property.FindPropertyRelative(getColorPropertyName(_colorID));
 
@@ -52,7 +52,7 @@ namespace DL.ColorPalette.Editor
             }
         }
 
-        protected static string getColorPropertyName(int _colorID)
+        protected virtual string getColorPropertyName(int _colorID)
         {
             if (_colorID < 1 || _colorID > k_MaxColorCount)
             {

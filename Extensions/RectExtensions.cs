@@ -1,4 +1,5 @@
 using DL.Structs;
+using UnityEditor;
 using UnityEngine;
 
 public static class RectExtensions
@@ -306,4 +307,247 @@ public static class RectExtensions
         return _rect;
 #endif
     }
+
+#if UNITY_EDITOR
+
+    [MenuItem("CONTEXT/RectTransform/Anchors/Adjust With Top Left Anchor")]
+    private static void adjustRectAnchorsWithTopLeft(MenuCommand _command)
+    {
+        if (_command.context is not RectTransform _rect)
+        {
+            return;
+        }
+
+        Undo.RecordObject(_rect, "Adjust RectTransform Anchors With Top Left Anchor");
+
+        Vector2 _size = _rect.rect.size;
+        Vector2 _anchorDelta = _rect.getRectAnchorDelta();
+        Vector2 _max = _rect.anchorMax;
+        Vector2 _min = _rect.anchorMin;
+
+        _rect.anchorMax = _max.WithX(_min.x + _anchorDelta.x);
+        _rect.anchorMin = _min.WithY(_max.y - _anchorDelta.y);
+        _rect.anchoredPosition = Vector2.zero;
+        _rect.sizeDelta = Vector2.zero;
+
+        _rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _size.x);
+        _rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _size.y);
+        _rect.sizeDelta = Vector2.zero;
+    }
+
+    [MenuItem("CONTEXT/RectTransform/Anchors/Adjust With Top Right Anchor")]
+    private static void adjustRectAnchorsWithTopRight(MenuCommand _command)
+    {
+        if (_command.context is not RectTransform _rect)
+        {
+            return;
+        }
+
+        Undo.RecordObject(_rect, "Adjust RectTransform Anchors With Top Right Anchor");
+
+        Vector2 _size = _rect.rect.size;
+        Vector2 _anchorDelta = _rect.getRectAnchorDelta();
+
+        _rect.anchorMin = _rect.anchorMax - _anchorDelta;
+        _rect.anchoredPosition = Vector2.zero;
+        _rect.sizeDelta = Vector2.zero;
+
+        _rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _size.x);
+        _rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _size.y);
+        _rect.sizeDelta = Vector2.zero;
+    }
+
+    [MenuItem("CONTEXT/RectTransform/Anchors/Adjust With Bottom Left Anchor")]
+    private static void adjustRectAnchorsWithBottomLeft(MenuCommand _command)
+    {
+        if (_command.context is not RectTransform _rect)
+        {
+            return;
+        }
+
+        Undo.RecordObject(_rect, "Adjust RectTransform Anchors With Bottom Left Anchor");
+
+        Vector2 _size = _rect.rect.size;
+        Vector2 _anchorDelta = _rect.getRectAnchorDelta();
+
+        _rect.anchorMax = _rect.anchorMin + _anchorDelta;
+        _rect.anchoredPosition = Vector2.zero;
+        _rect.sizeDelta = Vector2.zero;
+
+        _rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _size.x);
+        _rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _size.y);
+        _rect.sizeDelta = Vector2.zero;
+    }
+
+    [MenuItem("CONTEXT/RectTransform/Anchors/Adjust With Bottom Right Anchor")]
+    private static void adjustRectAnchorsWithBottomRight(MenuCommand _command)
+    {
+        if (_command.context is not RectTransform _rect)
+        {
+            return;
+        }
+
+        Undo.RecordObject(_rect, "Adjust RectTransform Anchors With Bottom Right Anchor");
+
+        Vector2 _size = _rect.rect.size;
+        Vector2 _anchorDelta = _rect.getRectAnchorDelta();
+        Vector2 _max = _rect.anchorMax;
+        Vector2 _min = _rect.anchorMin;
+
+        _rect.anchorMax = _max.WithY(_min.y + _anchorDelta.y);
+        _rect.anchorMin = _min.WithX(_max.x - _anchorDelta.x);
+        _rect.anchoredPosition = Vector2.zero;
+
+        _rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _size.x);
+        _rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _size.y);
+        _rect.sizeDelta = Vector2.zero;
+    }
+
+    [MenuItem("CONTEXT/RectTransform/Anchors/Fit At Center")]
+    private static void fitRectAnchorsAtCenter(MenuCommand _command)
+    {
+        if (_command.context is not RectTransform _rect)
+        {
+            return;
+        }
+
+        Undo.RecordObject(_rect, "Fit RectTransform Anchors At Center");
+
+        Vector2 _normalizedAnchorDelta = _rect.getRectAnchorDelta();
+
+        if (_normalizedAnchorDelta.x > 1f)
+        {
+            _normalizedAnchorDelta /= _normalizedAnchorDelta.x;
+        }
+        else if (_normalizedAnchorDelta.x < 0f)
+        {
+            _normalizedAnchorDelta.x = 0f;
+        }
+
+        if (_normalizedAnchorDelta.y > 1f)
+        {
+            _normalizedAnchorDelta /= _normalizedAnchorDelta.y;
+        }
+        else if (_normalizedAnchorDelta.y < 0f)
+        {
+            _normalizedAnchorDelta.y = 0f;
+        }
+
+        _rect.anchorMin = new Vector2
+        {
+            x = 0.5f - _normalizedAnchorDelta.x * 0.5f,
+            y = 0.5f - _normalizedAnchorDelta.y * 0.5f
+        };
+
+        _rect.anchorMax = new Vector2
+        {
+            x = 0.5f + _normalizedAnchorDelta.x * 0.5f,
+            y = 0.5f + _normalizedAnchorDelta.y * 0.5f
+        };
+
+        _rect.anchoredPosition = Vector2.zero;
+        _rect.sizeDelta = Vector2.zero;
+    }
+
+    [MenuItem("CONTEXT/RectTransform/Anchors/Set Anchors To Match Current Position And Size")]
+    private static void setRectAnchorsToMatchCurrentPositionAndSize(MenuCommand _command)
+    {
+        if (_command.context is not RectTransform _rect)
+        {
+            return;
+        }
+
+        if (!(_rect.parent is RectTransform _parentRect))
+        {
+            return;
+        }
+
+        Vector2 _parentSize = _parentRect.rect.size;
+
+        if (_parentSize.x == 0f || _parentSize.y == 0f)
+        {
+            return;
+        }
+
+        Undo.RecordObject(_rect, "Set RectTransform Anchors To Match Current Position And Size");
+
+        Vector2 _anchorMin = _rect.anchorMin;
+        Vector2 _anchorMax = _rect.anchorMax;
+        Vector2 _offsetMin = _rect.offsetMin;
+        Vector2 _offsetMax = _rect.offsetMax;
+
+        _anchorMin.x += _offsetMin.x / _parentSize.x;
+        _anchorMin.y += _offsetMin.y / _parentSize.y;
+
+        _anchorMax.x += _offsetMax.x / _parentSize.x;
+        _anchorMax.y += _offsetMax.y / _parentSize.y;
+
+        _rect.anchorMin = _anchorMin;
+        _rect.anchorMax = _anchorMax;
+
+        _rect.offsetMin = Vector2.zero;
+        _rect.offsetMax = Vector2.zero;
+    }
+
+    [MenuItem("CONTEXT/RectTransform/Anchors/Center Anchors Horizontally")]
+    private static void centerRectAnchorsHorizontally(MenuCommand _command)
+    {
+        if (_command.context is not RectTransform _rect)
+        {
+            return;
+        }
+
+        Undo.RecordObject(_rect, "Center RectTransform Anchors Horizontally");
+
+        Vector2 _anchorMin = _rect.anchorMin;
+        Vector2 _anchorMax = _rect.anchorMax;
+        float _anchorCenterX = (_anchorMin.x + _anchorMax.x) * 0.5f;
+        float _anchorDeltaX = (_anchorMax.x - _anchorMin.x) * 0.5f;
+
+        _rect.anchorMin = new Vector2
+        {
+            x = _anchorCenterX - _anchorDeltaX,
+            y = _anchorMin.y
+        };
+
+        _rect.anchorMax = new Vector2
+        {
+            x = _anchorCenterX + _anchorDeltaX,
+            y = _anchorMax.y
+        };
+    }
+
+    [MenuItem("CONTEXT/RectTransform/Anchors/Center Anchors Vertically")]
+    private static void centerRectAnchorsVertically(MenuCommand _command)
+    {
+        if (_command.context is not RectTransform _rect)
+        {
+            return;
+        }
+        Undo.RecordObject(_rect, "Center RectTransform Anchors Vertically");
+
+        Vector2 _anchorMin = _rect.anchorMin;
+        Vector2 _anchorMax = _rect.anchorMax;
+        float _anchorCenterY = (_anchorMin.y + _anchorMax.y) * 0.5f;
+        float _anchorDeltaY = (_anchorMax.y - _anchorMin.y) * 0.5f;
+
+        _rect.anchorMin = new Vector2
+        {
+            x = _anchorMin.x,
+            y = _anchorCenterY - _anchorDeltaY
+        };
+        _rect.anchorMax = new Vector2
+        {
+            x = _anchorMax.x,
+            y = _anchorCenterY + _anchorDeltaY
+        };
+    }
+
+    private static Vector2 getRectAnchorDelta(this RectTransform _rect)
+    {
+        return _rect != null && _rect.parent != null && _rect.parent is RectTransform _parentRect
+            ? _rect.rect.size / _parentRect.rect.size
+            : Vector2.one;
+    }
+#endif
 }
