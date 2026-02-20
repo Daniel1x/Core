@@ -9,6 +9,7 @@ namespace DL.SpriteUtilities.Editor
     {
         private const int k_MinimalCompressionSizeStep = 4;
 
+        private readonly Texture2D texture;
         private readonly string assetPath;
         private readonly Vector2Int originalSize;
 
@@ -44,6 +45,7 @@ namespace DL.SpriteUtilities.Editor
         {
             assetPath = _assetPath;
             originalSize = new Vector2Int(_texture.width, _texture.height);
+            texture = _texture;
 
             Vector2Int _toTrim = calculatePixelsToTrimToMultipleOf(originalSize, k_MinimalCompressionSizeStep);
 
@@ -142,19 +144,204 @@ namespace DL.SpriteUtilities.Editor
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
+                    if (GUILayout.Button("Calculate Trim For Black"))
+                    {
+                        calculateBlackPixelsToTrim();
+                    }
+
+                    if (GUILayout.Button("Calculate Trim For Transparent"))
+                    {
+                        calculateTransparentPixelsToTrim();
+                    }
+                }
+
+                EditorGUILayout.Space(8);
+
+                using (new EditorGUILayout.HorizontalScope())
+                {
                     GUILayout.FlexibleSpace();
 
-                    if (GUILayout.Button("Trim", GUILayout.Width(120)))
+                    if (GUILayout.Button("Trim", GUILayout.Width(60)))
                     {
                         tryTrimAndSave();
                     }
 
-                    if (GUILayout.Button("Close", GUILayout.Width(80)))
+                    if (GUILayout.Button("Close", GUILayout.Width(60)))
                     {
                         editorWindow.Close();
                     }
                 }
             }
+        }
+
+        private void checkImageForValidPixels(System.Predicate<Color> _canTrim, out int _left, out int _right, out int _top, out int _bottom)
+        {
+            _left = 0;
+            _right = 0;
+            _top = 0;
+            _bottom = 0;
+
+            if (texture == null || _canTrim == null)
+            {
+                return;
+            }
+
+            if (texture.isReadable == false)
+            {
+                EditorUtility.DisplayDialog("Trim Texture", "Texture is not readable. Please check the import settings.", "OK");
+                return;
+            }
+
+            Vector2Int _size = new Vector2Int(texture.width, texture.height);
+            Color[] _pixels = texture.GetPixels();
+
+            for (int x = 0; x < _size.x; x++)
+            {
+                bool _found = false;
+
+                for (int y = 0; y < _size.y; y++)
+                {
+                    Color _pixel = _pixels[y * _size.x + x];
+
+                    if (!_canTrim(_pixel))
+                    {
+                        _found = true;
+                        break;
+                    }
+                }
+
+                if (_found)
+                {
+                    break;
+                }
+
+                _left++;
+            }
+
+            for (int x = _size.x - 1; x >= 0; x--)
+            {
+                bool _found = false;
+
+                for (int y = 0; y < _size.y; y++)
+                {
+                    Color _pixel = _pixels[y * _size.x + x];
+
+                    if (!_canTrim(_pixel))
+                    {
+                        _found = true;
+                        break;
+                    }
+                }
+
+                if (_found)
+                {
+                    break;
+                }
+
+                _right++;
+            }
+
+            for (int y = 0; y < _size.y; y++)
+            {
+                bool _found = false;
+
+                for (int x = 0; x < _size.x; x++)
+                {
+                    Color _pixel = _pixels[y * _size.x + x];
+
+                    if (!_canTrim(_pixel))
+                    {
+                        _found = true;
+                        break;
+                    }
+                }
+
+                if (_found)
+                {
+                    break;
+                }
+
+                _bottom++;
+            }
+
+            for (int y = _size.y - 1; y >= 0; y--)
+            {
+                bool _found = false;
+
+                for (int x = 0; x < _size.x; x++)
+                {
+                    Color _pixel = _pixels[y * _size.x + x];
+
+                    if (!_canTrim(_pixel))
+                    {
+                        _found = true;
+                        break;
+                    }
+                }
+
+                if (_found)
+                {
+                    break;
+                }
+
+                _top++;
+            }
+
+            if (keepToMultipleOf4)
+            {
+                int _widthTrimmed = _size.x - (_left + _right);
+                int _heightTrimmed = _size.y - (_top + _bottom);
+                int _modX = _widthTrimmed % k_MinimalCompressionSizeStep;
+                int _modY = _heightTrimmed % k_MinimalCompressionSizeStep;
+
+                if (_modX != 0)
+                {
+                    if (_right >= _modX)
+                    {
+                        _right += _modX;
+                    }
+                    else if (_left >= _modX)
+                    {
+                        _left += _modX;
+                    }
+                }
+
+                if (_modY != 0)
+                {
+                    if (_bottom >= _modY)
+                    {
+                        _bottom += _modY;
+                    }
+                    else if (_top >= _modY)
+                    {
+                        _top += _modY;
+                    }
+                }
+            }
+        }
+
+        private void calculateBlackPixelsToTrim()
+        {
+            checkImageForValidPixels(
+                _canTrim,
+                out trimLeft,
+                out trimRight,
+                out trimTop,
+                out trimBottom);
+
+            bool _canTrim(Color _p) => _p.r == 0f && _p.g == 0f && _p.b == 0f;
+        }
+
+        private void calculateTransparentPixelsToTrim()
+        {
+            checkImageForValidPixels(
+                _canTrim,
+                out trimLeft,
+                out trimRight,
+                out trimTop,
+                out trimBottom);
+
+            bool _canTrim(Color _p) => _p.a == 0f;
         }
 
         private void tryTrimAndSave()
