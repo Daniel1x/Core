@@ -53,7 +53,7 @@ namespace DL.Editor.FindAsset
             }
         }
 
-        [MenuItem("My Tools/Find Asset Using GUID", priority = 2)]
+        [MenuItem("DL/Find Asset Using GUID", priority = 2)]
         public static void ShowWindow()
         {
             if (GetWindow(typeof(FindAssetUsingGUIDWindow)) is FindAssetUsingGUIDWindow _window)

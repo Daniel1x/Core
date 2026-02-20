@@ -71,7 +71,7 @@ namespace DL.Editor.TimeScaler
             return (_step * _stepsCount).ClampMax(max);
         }
 
-        [MenuItem("My Tools/Time Scaler", priority = 1)]
+        [MenuItem("DL/Time Scaler", priority = 1)]
         public static void ShowWindow()
         {
             if (GetWindow(typeof(TimeScalerWindow)) is TimeScalerWindow _window)

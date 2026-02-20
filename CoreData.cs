@@ -2,10 +2,9 @@ namespace DL
 {
     public static class CoreData
     {
-        public const string MY_PREFIX = "DL ";
-        public const string ROOT = MY_PREFIX + "Editor/";
-        public const string CREATION_TAB_NAME = MY_PREFIX + "Tools/";
-        public const string WINDOW_TAB_NAME = MY_PREFIX + "Windows/";
+        public const string MY_PREFIX = "DL";
+        public const string CREATION_TAB_NAME = MY_PREFIX + " Tools/";
+        public const string WINDOW_TAB_NAME = MY_PREFIX + " Windows/";
         public const string SCRIPTABLE_CREATION_TAB_NAME = CREATION_TAB_NAME + "Scriptables/";
 
         public const bool IS_EDITOR =

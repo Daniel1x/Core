@@ -23,7 +23,7 @@ namespace DL
             "Textures",
         };
 
-        [MenuItem(CoreData.ROOT + "Setup/Create Default Folders")]
+        [MenuItem(CoreData.MY_PREFIX + "/Setup/Create Default Folders")]
         public static void CreateDefaultFolders()
         {
             CreateDefaultFolders(DEFAULT_ROOT_FOLDER, DefaultFolders);
