@@ -1,12 +1,25 @@
 ﻿namespace DL.Core.Maze
 {
-    public interface IPolygon : IPolygonShape
+    public interface IPolygon : IPolygonShape, IPolygonRadius, IPolygonSideLength, IPolygonStartRotation
+    {
+
+    }
+
+    public interface IPolygonSideLength
+    {
+        public float SideLength { get; }
+    }
+
+    public interface IPolygonStartRotation
+    {
+        public float StartRotation { get; }
+    }
+
+    public interface IPolygonRadius
     {
         public float OuterRadius { get; }
         public float InnerRadius { get; }
         public float RadiusDelta { get; }
-        public float SideLength { get; }
-        public float StartRotation { get; }
     }
 
     public interface IPolygonSizeSetter
