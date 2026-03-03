@@ -39,6 +39,15 @@ namespace DL.Localization.Editor
                     _newData.SetLocalization(i, _translations[i]);
                 }
             }
+            else
+            {
+                string _defaultTranslation = _key.Split('/', '\\')[^1];
+
+                for (int i = 0; i < Languages.LanguageCount; i++)
+                {
+                    _newData.SetLocalization(i, _defaultTranslation);
+                }
+            }
 
             _source.SetKey(_key, _newData);
             _source.SaveSource();
