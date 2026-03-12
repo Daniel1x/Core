@@ -30,6 +30,14 @@ namespace DL.Localization.Editor
             //Draw popup for available keys
             var _spacing = EditorGUIUtility.standardVerticalSpacing;
             string[] _options = _localizationSource.Keys;
+
+            if (attribute is LocTermAttribute _locTermAttribute
+                && !string.IsNullOrEmpty(_locTermAttribute.Filter)
+                && !string.IsNullOrWhiteSpace(_locTermAttribute.Filter))
+            {
+                _options = System.Array.FindAll(_options, k => k.Contains(_locTermAttribute.Filter, System.StringComparison.OrdinalIgnoreCase));
+            }
+
             int _currentIndex = Mathf.Max(0, System.Array.IndexOf(_options, property.stringValue));
 
             using (var _changeCheckScope = new EditorGUI.ChangeCheckScope())
