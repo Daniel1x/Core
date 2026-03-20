@@ -55,7 +55,7 @@ namespace DL.SpriteUtilities.Editor
             trimBottom = _toTrim.y;
         }
 
-        public override Vector2 GetWindowSize() => new Vector2(500, 400f);
+        public override Vector2 GetWindowSize() => new Vector2(520f, 420f);
 
         public override void OnGUI(Rect _rect)
         {
@@ -70,6 +70,7 @@ namespace DL.SpriteUtilities.Editor
                 {
                     EditorGUILayout.LabelField("Asset", assetPath);
                     EditorGUILayout.LabelField("Size", $"{originalSize.x} x {originalSize.y}");
+                    EditorGUILayout.LabelField("Hint", "Negative trim values add transparent pixels on that edge.");
                 }
 
                 EditorGUILayout.Space(4);
@@ -90,7 +91,7 @@ namespace DL.SpriteUtilities.Editor
                 }
 
                 EditorGUILayout.Space(6);
-                EditorGUILayout.LabelField("Trim (pixels)", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("Trim / Pad (pixels)", EditorStyles.boldLabel);
 
                 using (new EditorGUILayout.HorizontalScope())
                 {
@@ -108,36 +109,7 @@ namespace DL.SpriteUtilities.Editor
 
                 if (keepToMultipleOf4)
                 {
-                    int _newW = originalSize.x - (trimLeft + trimRight);
-                    int _newH = originalSize.y - (trimTop + trimBottom);
-                    int _modX = _newW % k_MinimalCompressionSizeStep;
-                    int _modY = _newH % k_MinimalCompressionSizeStep;
-
-                    if (_modX != 0)
-                    {
-                        if (trimRight >= _modX)
-                        {
-                            trimRight += _modX;
-                        }
-                        else if (trimLeft >= _modX)
-                        {
-                            trimLeft += _modX;
-                        }
-                    }
-
-                    if (_modY != 0)
-                    {
-                        if (trimBottom >= _modY)
-                        {
-                            trimBottom += _modY;
-                        }
-                        else if (trimTop >= _modY)
-                        {
-                            trimTop += _modY;
-                        }
-                    }
-
-                    clampTrimsToValid(ref trimLeft, ref trimRight, ref trimTop, ref trimBottom, originalSize);
+                    enforceMultipleOf4();
                 }
 
                 EditorGUILayout.Space(8);
@@ -174,7 +146,38 @@ namespace DL.SpriteUtilities.Editor
             }
         }
 
-        private void checkImageForValidPixels(System.Predicate<Color> _canTrim, out int _left, out int _right, out int _top, out int _bottom)
+        private void enforceMultipleOf4()
+        {
+            int _newW = originalSize.x - (trimLeft + trimRight);
+            int _newH = originalSize.y - (trimTop + trimBottom);
+
+            int _modX = _newW % k_MinimalCompressionSizeStep;
+            int _modY = _newH % k_MinimalCompressionSizeStep;
+
+            if (_modX < 0)
+            {
+                _modX += k_MinimalCompressionSizeStep;
+            }
+
+            if (_modY < 0)
+            {
+                _modY += k_MinimalCompressionSizeStep;
+            }
+
+            if (_modX != 0)
+            {
+                trimRight += _modX;
+            }
+
+            if (_modY != 0)
+            {
+                trimBottom += _modY;
+            }
+
+            clampTrimsToValid(ref trimLeft, ref trimRight, ref trimTop, ref trimBottom, originalSize);
+        }
+
+        private void checkImageForValidPixels(Predicate<Color> _canTrim, out int _left, out int _right, out int _top, out int _bottom)
         {
             _left = 0;
             _right = 0;
@@ -287,6 +290,8 @@ namespace DL.SpriteUtilities.Editor
                 _top++;
             }
 
+            clampTrimsToValid(ref _left, ref _right, ref _top, ref _bottom, _size);
+
             if (keepToMultipleOf4)
             {
                 int _widthTrimmed = _size.x - (_left + _right);
@@ -294,29 +299,27 @@ namespace DL.SpriteUtilities.Editor
                 int _modX = _widthTrimmed % k_MinimalCompressionSizeStep;
                 int _modY = _heightTrimmed % k_MinimalCompressionSizeStep;
 
+                if (_modX < 0)
+                {
+                    _modX += k_MinimalCompressionSizeStep;
+                }
+
+                if (_modY < 0)
+                {
+                    _modY += k_MinimalCompressionSizeStep;
+                }
+
                 if (_modX != 0)
                 {
-                    if (_right >= _modX)
-                    {
-                        _right += _modX;
-                    }
-                    else if (_left >= _modX)
-                    {
-                        _left += _modX;
-                    }
+                    _right += _modX;
                 }
 
                 if (_modY != 0)
                 {
-                    if (_bottom >= _modY)
-                    {
-                        _bottom += _modY;
-                    }
-                    else if (_top >= _modY)
-                    {
-                        _top += _modY;
-                    }
+                    _bottom += _modY;
                 }
+
+                clampTrimsToValid(ref _left, ref _right, ref _top, ref _bottom, _size);
             }
         }
 
@@ -384,30 +387,40 @@ namespace DL.SpriteUtilities.Editor
 
         private static void clampTrimsToValid(ref int _left, ref int _right, ref int _top, ref int _bottom, Vector2Int _size)
         {
-            _left = Mathf.Max(0, _left);
-            _right = Mathf.Max(0, _right);
-            _top = Mathf.Max(0, _top);
-            _bottom = Mathf.Max(0, _bottom);
-
             int _maxX = Mathf.Max(0, _size.x - 1);
             int _maxY = Mathf.Max(0, _size.y - 1);
+
+            _left = Mathf.Min(_left, _maxX);
+            _right = Mathf.Min(_right, _maxX);
+            _top = Mathf.Min(_top, _maxY);
+            _bottom = Mathf.Min(_bottom, _maxY);
 
             if (_left + _right > _maxX)
             {
                 int _over = (_left + _right) - _maxX;
-                int _reduceRight = Mathf.Min(_right, _over);
+                int _reduceRight = Mathf.Min(Mathf.Max(0, _right), _over);
                 _right -= _reduceRight;
                 _over -= _reduceRight;
-                _left = Mathf.Max(0, _left - _over);
+
+                if (_over > 0)
+                {
+                    int _reduceLeft = Mathf.Min(Mathf.Max(0, _left), _over);
+                    _left -= _reduceLeft;
+                }
             }
 
             if (_top + _bottom > _maxY)
             {
                 int _over = (_top + _bottom) - _maxY;
-                int _reduceTop = Mathf.Min(_top, _over);
-                _top -= _reduceTop;
-                _over -= _reduceTop;
-                _bottom = Mathf.Max(0, _bottom - _over);
+                int _reduceBottom = Mathf.Min(Mathf.Max(0, _bottom), _over);
+                _bottom -= _reduceBottom;
+                _over -= _reduceBottom;
+
+                if (_over > 0)
+                {
+                    int _reduceTop = Mathf.Min(Mathf.Max(0, _top), _over);
+                    _top -= _reduceTop;
+                }
             }
         }
     }
@@ -419,6 +432,14 @@ namespace DL.SpriteUtilities.Editor
             if (string.IsNullOrWhiteSpace(_assetPath))
             {
                 throw new ArgumentException("Asset path is empty.", nameof(_assetPath));
+            }
+
+            string _ext = Path.GetExtension(_assetPath).ToLowerInvariant();
+
+            if ((_trimLeft < 0 || _trimRight < 0 || _trimTop < 0 || _trimBottom < 0)
+                && (_ext == ".jpg" || _ext == ".jpeg"))
+            {
+                throw new NotSupportedException("Negative trim values require transparency, so only .png is supported.");
             }
 
             var _texture = AssetDatabase.LoadAssetAtPath<Texture2D>(_assetPath);
@@ -451,16 +472,34 @@ namespace DL.SpriteUtilities.Editor
 
                 ValidateTrimRanges(_trimLeft, _trimRight, _trimTop, _trimBottom, _w, _h);
 
+                int _cropLeft = Mathf.Max(0, _trimLeft);
+                int _cropRight = Mathf.Max(0, _trimRight);
+                int _cropTop = Mathf.Max(0, _trimTop);
+                int _cropBottom = Mathf.Max(0, _trimBottom);
+
+                int _copyW = _w - (_cropLeft + _cropRight);
+                int _copyH = _h - (_cropTop + _cropBottom);
+
                 int _newW = _w - (_trimLeft + _trimRight);
                 int _newH = _h - (_trimTop + _trimBottom);
 
-                int _startX = _trimLeft;
-                int _startY = _trimBottom;
+                int _startX = _cropLeft;
+                int _startY = _cropBottom;
+                int _destinationX = Mathf.Max(0, -_trimLeft);
+                int _destinationY = Mathf.Max(0, -_trimBottom);
 
-                Color[] _pixels = _reloaded.GetPixels(_startX, _startY, _newW, _newH);
+                Color[] _pixels = _reloaded.GetPixels(_startX, _startY, _copyW, _copyH);
 
                 var _newTex = new Texture2D(_newW, _newH, TextureFormat.RGBA32, false);
-                _newTex.SetPixels(_pixels);
+                var _clearPixels = new Color[_newW * _newH];
+
+                for (int i = 0; i < _clearPixels.Length; i++)
+                {
+                    _clearPixels[i] = Color.clear;
+                }
+
+                _newTex.SetPixels(_clearPixels);
+                _newTex.SetPixels(_destinationX, _destinationY, _copyW, _copyH, _pixels);
                 _newTex.Apply(updateMipmaps: false, makeNoLongerReadable: false);
 
                 SaveTextureOverAssetFile(_assetPath, _newTex);
@@ -472,9 +511,17 @@ namespace DL.SpriteUtilities.Editor
 
         private static void ValidateTrimRanges(int _trimLeft, int _trimRight, int _trimTop, int _trimBottom, int _w, int _h)
         {
-            if (_trimLeft < 0 || _trimRight < 0 || _trimTop < 0 || _trimBottom < 0)
+            int _cropLeft = Mathf.Max(0, _trimLeft);
+            int _cropRight = Mathf.Max(0, _trimRight);
+            int _cropTop = Mathf.Max(0, _trimTop);
+            int _cropBottom = Mathf.Max(0, _trimBottom);
+
+            int _copyW = _w - (_cropLeft + _cropRight);
+            int _copyH = _h - (_cropTop + _cropBottom);
+
+            if (_copyW <= 0 || _copyH <= 0)
             {
-                throw new ArgumentOutOfRangeException("Trim values cannot be negative.");
+                throw new ArgumentOutOfRangeException("Trim is too large - no source pixels would remain.");
             }
 
             int _newW = _w - (_trimLeft + _trimRight);
