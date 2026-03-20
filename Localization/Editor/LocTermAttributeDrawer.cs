@@ -58,13 +58,13 @@ namespace DL.Localization.Editor
             //Draw foldout and then translations if expanded, allow editing them
             Rect _foldoutRect = new Rect(position.x, position.y + (EditorGUIUtility.singleLineHeight + _spacing) * 2, position.width, EditorGUIUtility.singleLineHeight);
 
-            //If key does not exist, show button to create it
-            if (_hasKey == false)
-            {
-                //Left half for foldout, right half for button
-                var _foldoutHalfRect = new Rect(_foldoutRect.x, _foldoutRect.y, _foldoutRect.width / 2 - 2, _foldoutRect.height);
-                var _buttonHalfRect = new Rect(_foldoutRect.x + _foldoutRect.width / 2 + 2, _foldoutRect.y, _foldoutRect.width / 2 - 2, _foldoutRect.height);
+            //Left half for foldout, right half for button
+            var _foldoutHalfRect = new Rect(_foldoutRect.x, _foldoutRect.y, _foldoutRect.width / 2 - 2, _foldoutRect.height);
+            var _buttonHalfRect = new Rect(_foldoutRect.x + _foldoutRect.width / 2 + 2, _foldoutRect.y, _foldoutRect.width / 2 - 2, _foldoutRect.height);
 
+            //If key does not exist, show button to create it
+            if (!_hasKey)
+            {
                 property.isExpanded = EditorGUI.Foldout(_foldoutHalfRect, property.isExpanded, "Translations", true);
                 property.serializedObject.ApplyModifiedProperties();
 
@@ -75,7 +75,13 @@ namespace DL.Localization.Editor
             }
             else //Key exists, show normal foldout with translations
             {
-                property.isExpanded = EditorGUI.Foldout(_foldoutRect, property.isExpanded, "Translations", true);
+                property.isExpanded = EditorGUI.Foldout(_foldoutHalfRect, property.isExpanded, "Translations", true);
+
+                if (GUI.Button(_buttonHalfRect, "Delete Key") && EditorUtility.DisplayDialog("Delete Key", "Are you sure you want to delete this key?", "Yes", "No"))
+                {
+                    _localizationSource.DeleteKey(property.stringValue);
+                    return;
+                }
 
                 if (!property.isExpanded)
                 {

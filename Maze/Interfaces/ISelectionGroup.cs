@@ -54,6 +54,7 @@
                 if (dictionary.ContainsKey(value))
                 {
                     selectedKey = value;
+                    handleSelectionChanged();
                     OnSelectionChanged?.Invoke();
                 }
             }
@@ -195,5 +196,7 @@
                 SelectedKey = _key;
             }
         }
+
+        protected virtual void handleSelectionChanged() { }
     }
 }

@@ -1,10 +1,11 @@
 ﻿namespace DL.Core.Maze
 {
+    using System;
     using System.Collections.Generic;
     using UnityEngine;
 
     [System.Serializable]
-    public sealed class GridNode 
+    public sealed class GridNode
     {
         public delegate void WallChangedHandler(GridNode _owner, GridNode _neighbor, bool _hasWall);
 
@@ -14,9 +15,9 @@
         [SerializeField] private int id;
         [SerializeField] private Vector2Int position;
 
-        private List<GridNode> neighbors = null;
-        private List<GridNode> availableNeighbors = null;
-        private Dictionary<GridNode, bool> walls = null;
+        [NonSerialized] private List<GridNode> neighbors = null;
+        [NonSerialized] private List<GridNode> availableNeighbors = null;
+        [NonSerialized] private Dictionary<GridNode, bool> walls = null;
 
         public int ID => id;
         public Vector2Int Position => position;

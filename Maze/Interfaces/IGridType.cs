@@ -2,7 +2,8 @@
 {
     using UnityEngine;
 
-    public interface IGridType : ISelectionKeyContainer<string>,
+    public interface IGridType :
+        ISelectionKeyContainer<string>,
         IPolygonSizeSetter,
         IGridLayoutProvider,
         IGridTopologyProvider,

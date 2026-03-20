@@ -74,8 +74,13 @@ namespace DL.Localization
             keys = dataDictionary.Keys.ToArray();
         }
 
-        [ContextMenu("Adjust Array Sizes To Language Count")]
-        public void AdjustArraySizesToLanguageCount()
+        [ContextMenu("Adjust Array Sizes To Language Count and Remove If Too Many")]
+        public void AdjustArraySizeToLanguagesAndRemoveIfTooMany() => AdjustArraySizesToLanguageCount(true);
+
+        [ContextMenu("Adjust Array Sizes To Language Count and Keep If Too Many")]
+        public void AdjustArraySizeToLanguagesAndKeepIfTooMany() => AdjustArraySizesToLanguageCount(false);
+
+        public void AdjustArraySizesToLanguageCount(bool _removeIfTooMany)
         {
 #if UNITY_EDITOR
             bool _anyChanged = false;
@@ -90,7 +95,7 @@ namespace DL.Localization
                     continue;
                 }
 
-                _item.Localization = Languages.AdjustLanguageArraySize(_current);
+                _item.Localization = Languages.AdjustLanguageArraySize(_current, _removeIfTooMany);
                 _anyChanged = true;
             }
 

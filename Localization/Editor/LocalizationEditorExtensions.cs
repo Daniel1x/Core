@@ -53,6 +53,17 @@ namespace DL.Localization.Editor
             _source.SaveSource();
         }
 
+        public static void DeleteKey(this LocalizationSource _source, string _key)
+        {
+            if (_source == null || string.IsNullOrEmpty(_key))
+            {
+                return;
+            }
+
+            _source.RemoveKey(_key);
+            _source.SaveSource();
+        }
+
         public static void SaveSource(this LocalizationSource _source)
         {
             if (_source != null)

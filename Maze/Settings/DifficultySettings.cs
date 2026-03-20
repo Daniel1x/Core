@@ -1,6 +1,7 @@
 ﻿namespace DL.Core.Maze
 {
     using System;
+    using System.Collections.Generic;
     using UnityEngine;
 
     public enum Difficulty
@@ -50,5 +51,10 @@
 
         public Difficulty GetDifficulty() => difficulty;
         public Difficulty GetSelected() => difficulty;
+    }
+
+    public static class DifficultyUtils
+    {
+        public static readonly IReadOnlyList<Difficulty> Difficulties = (Difficulty[])Enum.GetValues(typeof(Difficulty));
     }
 }
