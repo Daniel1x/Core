@@ -56,5 +56,19 @@
     public static class DifficultyUtils
     {
         public static readonly IReadOnlyList<Difficulty> Difficulties = (Difficulty[])Enum.GetValues(typeof(Difficulty));
+        public static readonly int DifficultyCount = Difficulties.Count;
+
+        public static string CreateDifficultyKey(this string _baseKey, Difficulty _difficulty) => createDifficultyKey(_baseKey, _difficulty);
+        public static string CreateDifficultyKey(this Difficulty _difficulty, string _baseKey) => createDifficultyKey(_baseKey, _difficulty);
+
+        private static string createDifficultyKey(string _baseKey, Difficulty _difficulty)
+        {
+            if (string.IsNullOrEmpty(_baseKey))
+            {
+                return _difficulty.ToString();
+            }
+
+            return $"{_baseKey}_{_difficulty}";
+        }
     }
 }
