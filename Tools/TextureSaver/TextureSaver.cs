@@ -1,6 +1,7 @@
 namespace DL.TextureSaver
 {
     using System.Collections.Generic;
+    using System.Reflection;
     using UnityEngine;
     using UnityEngine.UI;
 
@@ -15,6 +16,7 @@ namespace DL.TextureSaver
         }
 
         private static readonly List<IMaterialModifier> materialModifiers = new List<IMaterialModifier>();
+        private static readonly MethodInfo onPopulateMeshMethod = typeof(Image).GetMethod("OnPopulateMesh", BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { typeof(VertexHelper) }, null);
 
         public static void SaveTexture(GameObject _objectWithImage, string _directoryPath = "Assets", string _filename = "t_New", TextureFormat _format = TextureFormat.RGBA32, bool _optimizeFor9Slice = false, bool _pingObject = true, GrayScaleAdjustments _grayScale = GrayScaleAdjustments.None)
         {
@@ -73,6 +75,8 @@ namespace DL.TextureSaver
             int _width = (int)_rectTransform.rect.width;
             int _height = (int)_rectTransform.rect.height;
 
+            calculateOptimalResolution(ref _width, ref _height, _spriteTexture);
+
             Texture2D _textureToDraw = _spriteTexture != null ? _spriteTexture : Texture2D.whiteTexture;
             RenderTexture _renderTexture = new RenderTexture(_width, _height, 0)
             {
@@ -85,13 +89,24 @@ namespace DL.TextureSaver
             _renderTexture.Create();
             RenderTexture.active = _renderTexture;
 
-            if (_materialInstance != null)
+            bool _isSimple = _image.type == Image.Type.Simple;
+
+            if (_isSimple)
             {
-                Graphics.Blit(_textureToDraw, _renderTexture, _materialInstance);
+                // Simple mode: standard blit works correctly
+                if (_materialInstance != null)
+                {
+                    Graphics.Blit(_textureToDraw, _renderTexture, _materialInstance);
+                }
+                else
+                {
+                    Graphics.Blit(_textureToDraw, _renderTexture);
+                }
             }
             else
             {
-                Graphics.Blit(_textureToDraw, _renderTexture);
+                // Sliced/Tiled/Filled: generate mesh via reflection and render it manually
+                renderImageMesh(_image, _renderTexture, _materialInstance, _textureToDraw, _width, _height);
             }
 
             Texture2D _texture = new Texture2D(_width, _height, _format, false);
@@ -189,6 +204,137 @@ namespace DL.TextureSaver
             Resources.UnloadUnusedAssets();
             System.GC.Collect(0, System.GCCollectionMode.Forced, true, true);
 #endif
+        }
+
+        /// <summary>
+        /// Calculates the optimal output resolution by comparing the RectTransform size with the sprite texture size.
+        /// The aspect ratio from the RectTransform is always preserved.
+        /// If the sprite has a higher resolution than the rect, the output is scaled up to match the sprite's
+        /// largest dimension while maintaining the rect's aspect ratio.
+        /// </summary>
+        private static void calculateOptimalResolution(ref int _width, ref int _height, Texture2D _spriteTexture)
+        {
+            if (_width <= 0 || _height <= 0)
+            {
+                return;
+            }
+
+            if (_spriteTexture == null)
+            {
+                return;
+            }
+
+            int _spriteWidth = _spriteTexture.width;
+            int _spriteHeight = _spriteTexture.height;
+            float _rectAspect = (float)_width / _height;
+
+            // Check if sprite resolution is higher than rect in at least one dimension
+            if (_spriteWidth <= _width && _spriteHeight <= _height)
+            {
+                return;
+            }
+
+            // Scale up to fit the sprite's largest useful dimension while keeping rect's aspect ratio
+            // Try fitting by width first, then by height, and pick whichever gives the larger result
+            // without exceeding both sprite dimensions unnecessarily
+            int _fitByWidthW = _spriteWidth;
+            int _fitByWidthH = Mathf.RoundToInt(_spriteWidth / _rectAspect);
+
+            int _fitByHeightH = _spriteHeight;
+            int _fitByHeightW = Mathf.RoundToInt(_spriteHeight * _rectAspect);
+
+            // Pick the fit that results in the largest area without going below original rect size
+            long _areaByWidth = (long)_fitByWidthW * _fitByWidthH;
+            long _areaByHeight = (long)_fitByHeightW * _fitByHeightH;
+
+            if (_areaByWidth >= _areaByHeight)
+            {
+                _width = _fitByWidthW;
+                _height = _fitByWidthH;
+            }
+            else
+            {
+                _width = _fitByHeightW;
+                _height = _fitByHeightH;
+            }
+
+            // Ensure minimum of 1 pixel in each dimension
+            _width = Mathf.Max(_width, 1);
+            _height = Mathf.Max(_height, 1);
+        }
+
+        /// <summary>
+        /// Renders the Image mesh (Sliced/Tiled/Filled) onto the RenderTexture using GL commands.
+        /// Uses reflection to call the protected <c>OnPopulateMesh</c> method, which generates
+        /// correct vertices and UVs for all Image.type modes.
+        /// </summary>
+        private static void renderImageMesh(Image _image, RenderTexture _renderTexture, Material _material, Texture2D _texture, int _width, int _height)
+        {
+            if (onPopulateMeshMethod == null)
+            {
+                Debug.LogError("Failed to find OnPopulateMesh method via reflection. Falling back to simple Blit.");
+
+                if (_material != null)
+                {
+                    Graphics.Blit(_texture, _renderTexture, _material);
+                }
+                else
+                {
+                    Graphics.Blit(_texture, _renderTexture);
+                }
+
+                return;
+            }
+
+            // Generate mesh data via Image's internal OnPopulateMesh
+            using (VertexHelper _vertexHelper = new VertexHelper())
+            {
+                onPopulateMeshMethod.Invoke(_image, new object[] { _vertexHelper });
+
+                Mesh _mesh = new Mesh();
+                _vertexHelper.FillMesh(_mesh);
+
+                // Remap vertices from RectTransform local space to pixel coordinates
+                Rect _rect = _image.rectTransform.rect;
+                Vector3[] _vertices = _mesh.vertices;
+
+                for (int i = 0; i < _vertices.Length; i++)
+                {
+                    float _normalizedX = (_vertices[i].x - _rect.x) / _rect.width;
+                    float _normalizedY = (_vertices[i].y - _rect.y) / _rect.height;
+
+                    _vertices[i] = new Vector3(_normalizedX * _width, _normalizedY * _height, 0f);
+                }
+
+                _mesh.vertices = _vertices;
+
+                // Clear to transparent
+                GL.Clear(true, true, Color.clear);
+
+                // Setup orthographic pixel-perfect projection
+                GL.PushMatrix();
+                GL.LoadPixelMatrix(0, _width, 0, _height);
+
+                // Use the material or a default UI material
+                Material _drawMaterial = _material != null ? _material : new Material(Shader.Find("UI/Default"));
+
+                if (_drawMaterial.HasTexture("_MainTex"))
+                {
+                    _drawMaterial.SetTexture("_MainTex", _texture != null ? _texture : Texture2D.whiteTexture);
+                }
+
+                _drawMaterial.SetPass(0);
+                Graphics.DrawMeshNow(_mesh, Matrix4x4.identity);
+
+                GL.PopMatrix();
+
+                DestroyImmediate(_mesh);
+
+                if (_material == null)
+                {
+                    DestroyImmediate(_drawMaterial);
+                }
+            }
         }
     }
 }
