@@ -12,7 +12,7 @@
         public int BitMask => modifier.BitMask;
         public float AngleOffset => modifier.AngleOffset;
 
-        public PolygonPermutationData(Material _material, PolygonModifier _modifier, string[] _keywords)
+        public PolygonPermutationData(Material _material, PolygonModifier _modifier)
         {
             if (_material == null)
             {
@@ -20,7 +20,7 @@
             }
 
             modifier = _modifier;
-            variants = new PolygonMaterialVariants(_material, _keywords);
+            variants = new PolygonMaterialVariants(_material);
         }
 
         public PolygonPermutationData(PolygonMaterialVariants _variants, PolygonModifier _modifier)

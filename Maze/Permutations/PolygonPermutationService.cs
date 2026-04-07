@@ -9,7 +9,7 @@
     {
         private readonly Dictionary<int, PolygonMaterialPermutation> permutationsByVertex = null;
 
-        public PolygonPermutationService(Material[] _materials, string[] _keywords, string _vertexCountProperty = "_VertexCount", string _wallMaskProperty = "_WallMask")
+        public PolygonPermutationService(Material[] _materials, string _vertexCountProperty = "_VertexCount", string _wallMaskProperty = "_WallMask")
         {
             if (_materials == null || _materials.Length == 0)
             {
@@ -58,7 +58,7 @@
                     continue;
                 }
 
-                permutationsByVertex[_vertexCount] = new PolygonMaterialPermutation(_material, _vertexCount, _wallMaskProperty, _keywords);
+                permutationsByVertex[_vertexCount] = new PolygonMaterialPermutation(_material, _vertexCount, _wallMaskProperty);
             }
         }
 
@@ -89,7 +89,7 @@
             private readonly Material templateMaterial;
             private readonly Dictionary<int, PolygonPermutationData> permutationsByWallMask;
 
-            public PolygonMaterialPermutation(Material _material, int _vertexCount, string _wallMaskProperty, string[] _keywords)
+            public PolygonMaterialPermutation(Material _material, int _vertexCount, string _wallMaskProperty)
             {
                 // Create a new material instance to serve as the template for this vertex count
                 templateMaterial = _material;
@@ -101,7 +101,7 @@
                 // Add default permutation for no walls
                 int _defaultMask = 0;
                 PolygonModifier _defaultModifier = new PolygonModifier(_defaultMask, 0f);
-                permutationsByWallMask[_defaultMask] = new PolygonPermutationData(templateMaterial, _defaultModifier, _keywords);
+                permutationsByWallMask[_defaultMask] = new PolygonPermutationData(templateMaterial, _defaultModifier);
 
                 // Generate permutations for all possible wall masks
                 int _maxMask = (1 << _vertexCount) - 1;
@@ -131,7 +131,7 @@
                             _newMaterial.name += $"_Mask_{Convert.ToString(_baseMask, 2)}";
                             _newMaterial.SetFloat(_wallMaskProperty, _baseMask);
 
-                            permutationsByWallMask[_rotatedMask] = new PolygonPermutationData(_newMaterial, _modifier, _keywords);
+                            permutationsByWallMask[_rotatedMask] = new PolygonPermutationData(_newMaterial, _modifier);
                         }
                     }
                 }

@@ -5,56 +5,41 @@
 
     public class PolygonMaterialVariants
     {
-        private const string k_DefaultKeyword = "_DEFAULT_KEY";
+        private readonly Dictionary<PolygonVisualizationState, Material> materials;
 
-        private readonly Dictionary<string, Material> materials;
+        public Dictionary<PolygonVisualizationState, Material> Materials => materials;
 
-        public Dictionary<string, Material> Materials => materials;
-
-        public PolygonMaterialVariants(Material _baseMaterial, string[] _keywords)
+        public PolygonMaterialVariants(Material _baseMaterial)
         {
             if (_baseMaterial == null)
             {
                 throw new System.ArgumentNullException(nameof(_baseMaterial), "Base material cannot be null.");
             }
 
-            if (_keywords == null || _keywords.Length == 0)
+            PolygonVisualizationState[] _states = PolygonStateVisualizationExtensions.States;
+            int _count = _states.Length;
+
+            materials = new Dictionary<PolygonVisualizationState, Material>(_count);
+
+            for (int i = 0; i < _states.Length; i++)
             {
-                throw new System.ArgumentException("At least one keyword must be provided.", nameof(_keywords));
-            }
-
-            int _count = _keywords.Length + 1;
-            materials = new Dictionary<string, Material>(_count);
-            materials[k_DefaultKeyword] = _baseMaterial;
-
-            for (int i = 0; i < _keywords.Length; i++)
-            {
-                if (string.IsNullOrEmpty(_keywords[i]))
-                {
-                    Debug.LogWarning($"Keyword at index {i} is null or empty. Skipping this keyword.");
-                    continue;
-                }
-
+                PolygonVisualizationState _state = _states[i];
                 Material _newMaterialWithKeyword = new Material(_baseMaterial);
-                _newMaterialWithKeyword.EnableKeyword(_keywords[i]);
-                _newMaterialWithKeyword.name += $"_{_keywords[i]}";
-                materials[_keywords[i]] = _newMaterialWithKeyword;
+                _newMaterialWithKeyword.SetFloat(PolygonStateVisualizationExtensions.k_StatePropertyID, (float)_state);
+                _newMaterialWithKeyword.name += $"_{_state}";
+
+                materials[_state] = _newMaterialWithKeyword;
             }
         }
 
-        public Material GetMaterial(string _keyword)
+        public Material GetMaterial(PolygonVisualizationState _state)
         {
-            if (string.IsNullOrEmpty(_keyword) == false && materials.TryGetValue(_keyword, out var _material))
+            if (!materials.TryGetValue(_state, out Material _material))
             {
-                return _material;
+                throw new KeyNotFoundException($"Material for state {_state} not found. Ensure that the state was included during initialization.");
             }
 
-            if (materials.TryGetValue(k_DefaultKeyword, out var _defaultMaterial))
-            {
-                return _defaultMaterial;
-            }
-
-            throw new KeyNotFoundException($"No material found for keyword '{_keyword}' and no default material is available.");
+            return _material;
         }
     }
 }

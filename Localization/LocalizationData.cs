@@ -27,7 +27,6 @@ namespace DL.Localization
         {
             if (_languageIndex < 0 || _languageIndex >= Localization.Length)
             {
-                UnityEngine.Debug.LogError($"Language index {_languageIndex} is out of range 0-{Localization.Length} for Key: {Key}.");
                 return string.Empty;
             }
 
