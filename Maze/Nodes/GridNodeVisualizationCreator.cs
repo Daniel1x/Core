@@ -20,7 +20,7 @@
             return _polygon;
         }
 
-        public abstract void ReturnVisualizationToPool();
+        public abstract void ReturnVisualizationToPool(Transform _limitToSelectedParentOnly = null);
 
         protected abstract IPolygonVisualization createNewInstance(Vector2Int _position);
     }

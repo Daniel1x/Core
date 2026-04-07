@@ -23,7 +23,7 @@
     public interface INodeVisualizationCreator
     {
         IPolygonVisualization CreateNewInstance(Transform _parent, GridNode _node, IPolygonPermutationDataProvider _permutationProvider);
-        void ReturnVisualizationToPool();
+        void ReturnVisualizationToPool(Transform _limitToSelectedParentOnly = null);
     }
 
     public interface IGridNeighborWallVisualizationResolverProvider
