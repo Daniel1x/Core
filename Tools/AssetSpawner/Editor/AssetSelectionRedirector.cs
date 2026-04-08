@@ -9,6 +9,7 @@ namespace DL.AssetLoading
     {
         private static bool suppress;
         private static bool pending;
+        private static Object[] toSelect;
 
         static AssetSelectionRedirector()
         {
@@ -50,14 +51,33 @@ namespace DL.AssetLoading
             }
 
             pending = true;
+            toSelect = _current;
 
-            EditorApplication.delayCall += () =>
+            EditorApplication.delayCall += handleDelayCall;
+        }
+
+        private static void handleDelayCall()
+        {
+            pending = false;
+            suppress = true;
+
+            if (toSelect != null)
             {
-                pending = false;
-                suppress = true;
-                Selection.objects = _current;
-                suppress = false;
-            };
+                Selection.objects = toSelect;
+            }
+
+            suppress = false;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void onRuntimeInitializeOnLoad()
+        {
+            Selection.selectionChanged -= onSelectionChanged;
+            EditorApplication.delayCall -= handleDelayCall;
+
+            suppress = false;
+            pending = false;
+            toSelect = null;
         }
     }
 #endif

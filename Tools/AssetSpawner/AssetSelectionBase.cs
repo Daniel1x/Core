@@ -8,7 +8,7 @@ namespace DL.AssetLoading
     {
         public static int ActiveInstancesCount => activeInstances.Count;
 
-        private static List<AssetSelectionBase> activeInstances = new();
+        private static readonly List<AssetSelectionBase> activeInstances = new();
 
         public GameObject Redirection { get; set; } = null;
 
@@ -21,6 +21,11 @@ namespace DL.AssetLoading
         }
 
         private void OnDisable()
+        {
+            activeInstances.Remove(this);
+        }
+
+        private void OnDestroy()
         {
             activeInstances.Remove(this);
         }
