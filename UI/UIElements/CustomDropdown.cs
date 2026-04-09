@@ -7,6 +7,12 @@ using UnityEngine.UI;
 
 public class CustomDropdown : TMP_Dropdown, INavigationItem<CustomDropdown>, IDropdownContainer
 {
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void Init()
+    {
+        OnAnyDropdownValueChanged = null;
+    }
+
     public static UnityAction<INavigationItem> OnAnyDropdownValueChanged = null;
 
     ///<summary>(Dropdown ID, Dropdown, Selected Option ID)</summary>

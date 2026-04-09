@@ -5,6 +5,12 @@ using UnityEngine.UI;
 
 public class CustomToggle : Toggle, INavigationItem<CustomToggle>, IToggleContainer
 {
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void InitStaticEvents()
+    {
+        OnAnyToggleValueChanged = null;
+    }
+
     public static UnityAction<INavigationItem> OnAnyToggleValueChanged = null;
 
     public event UnityAction<int, CustomToggle> OnItemSelected = null;

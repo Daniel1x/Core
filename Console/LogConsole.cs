@@ -55,6 +55,11 @@ namespace DL.LogConsole
             unregisterEvents();
         }
 
+        private void OnDestroy()
+        {
+            Application.logMessageReceivedThreaded -= onThreadedLog;
+        }
+
         private void Update()
         {
             processQueuedLogs();

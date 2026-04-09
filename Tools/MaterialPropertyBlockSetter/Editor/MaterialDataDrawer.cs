@@ -7,6 +7,19 @@ namespace DL.MaterialPropertyBlockSetter
 
     public static class MaterialDataDrawer
     {
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void Init()
+        {
+            newType = ShaderPropertyType.Color;
+            newPropertyTypeID = 0;
+            colorValue = Color.white;
+            vector4Value = Vector4.zero;
+            floatValue = 0f;
+            rangeValue = 0f;
+            textureValue = null;
+            intValue = 0;
+        }
+
         private const float TOOLS_BUTTON_MIN_WIDTH = 50f;
         private const float TOOLS_BUTTON_MAX_WIDTH = 100f;
         private const float SETTINGS_LABEL_MAX_WIDTH = 150;

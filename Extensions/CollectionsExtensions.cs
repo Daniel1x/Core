@@ -7,7 +7,7 @@ using UnityEngine;
 public static class CollectionsExtensions
 {
     public delegate bool FilterFunc<T>(T _filtr);
-    private static System.Random random = new System.Random();
+    private static readonly System.Random random = new System.Random();
 
     public static bool SetActive(this UnityEngine.GameObject[] _array, bool _activeState)
     {

@@ -10,6 +10,12 @@ public abstract class ApplicationManagerBase : MonoBehaviour
         Initialized = 2,
     }
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void ResetInstance()
+    {
+        instance = null;
+    }
+
     public static bool Exists => instance != null;
     public static InitializationState State => instance != null ? instance.initializationState : InitializationState.Uninitialized;
 

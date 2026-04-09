@@ -6,6 +6,16 @@ namespace DL.TextureSaver
     [CustomEditor(typeof(TextureSaver))]
     public class TextureSaverEditor : Editor
     {
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        public static void ResetStaticFields()
+        {
+            DirectoryPath = "Assets";
+            Filename = "SavedTexture";
+            Format = TextureFormat.RGBA32;
+            OptimizeFor9Slice = true;
+            GrayScale = TextureSaver.GrayScaleAdjustments.None;
+        }
+
         public static string DirectoryPath = "Assets";
         public static string Filename = "SavedTexture";
         public static TextureFormat Format = TextureFormat.RGBA32;

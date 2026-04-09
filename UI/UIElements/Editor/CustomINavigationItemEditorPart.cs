@@ -69,6 +69,13 @@ public class CustomINavigationItemEditorPart<T> where T : Selectable, INavigatio
 
 public static class CustomINavigationItemLayoutUtilities
 {
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    public static void ResetStaticFields()
+    {
+        showLayoutUtilities = false;
+        selectableToCloneTransitionSettingsFrom = null;
+    }
+
     private static bool showLayoutUtilities = false;
     private static Selectable selectableToCloneTransitionSettingsFrom = null;
 
