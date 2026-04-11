@@ -2,11 +2,18 @@ namespace DL.Application.Bootstrapper
 {
     using UnityEditor;
     using UnityEditor.SceneManagement;
+    using UnityEngine;
     using UnityEngine.SceneManagement;
 
     [InitializeOnLoad]
     public class EditorSceneBootstrapper
     {
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStaticData()
+        {
+            s_RestartingToSwitchScene = false;
+        }
+
         private const string k_MenuPath = "DL/Bootstrapper/";
         private const string k_PreviousSceneKey = "PreviousScene";
         private const string k_ShouldLoadBootstrapSceneKey = "LoadBootstrapScene";
