@@ -32,5 +32,10 @@ namespace DL.Localization
 
             return Localization[_languageIndex];
         }
+
+        public string GetLocalization(Language _language)
+        {
+            return GetLocalization(_language.ToIndex());
+        }
     }
 }

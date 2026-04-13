@@ -7,13 +7,11 @@ namespace DL.Localization
     [CreateAssetMenu(fileName = "LocalizationSource", menuName = "DL/Localization/Localization Source", order = 1)]
     public class LocalizationSource : ScriptableObject
     {
-        [SerializeField] private LanguageList languages = new LanguageList();
         [SerializeField] private List<LocalizationData> data = new List<LocalizationData>();
 
         private Dictionary<string, LocalizationData> dataDictionary = new Dictionary<string, LocalizationData>();
         private string[] keys = new string[] { };
 
-        public LanguageList LanguageList => languages;
         public string[] Keys => keys;
 
         public bool Initialized => dataDictionary != null && dataDictionary.Count > 0 && keys != null && keys.Length > 0 && data.Count == dataDictionary.Count;
@@ -106,6 +104,28 @@ namespace DL.Localization
                 Debug.Log("Adjusted localization array sizes to match language count.");
             }
 #endif
+        }
+
+        public HashSet<char> GetAllUniqueCharacters()
+        {
+            HashSet<char> _uniqueChars = new HashSet<char>();
+
+            foreach (LocalizationData _item in data)
+            {
+                foreach (string _localization in _item.Localization)
+                {
+                    if (string.IsNullOrEmpty(_localization))
+                    {
+                        continue;
+                    }
+                    foreach (char _c in _localization)
+                    {
+                        _uniqueChars.Add(_c);
+                    }
+                }
+            }
+
+            return _uniqueChars;
         }
     }
 }

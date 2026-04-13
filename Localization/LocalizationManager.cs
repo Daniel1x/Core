@@ -5,8 +5,10 @@ namespace DL.Localization
         public static event System.Action OnLocalizationChanged;
 
         private static LocalizationSource localizationSource;
+        private static Language currentLanguage = Language.English;
 
         public static bool IsInitialized => localizationSource != null;
+        public static Language CurrentLanguage => currentLanguage;
 
         public static string GetTranslation(ILocalizationKey _key)
         {
@@ -21,36 +23,31 @@ namespace DL.Localization
             }
 
             return localizationSource.HasKey(_key, out LocalizationData _data)
-                ? _data.GetLocalization(localizationSource.LanguageList.SelectedLanguageIndex)
+                ? _data.GetLocalization(currentLanguage)
                 : $"Key not found: {_key}";
         }
 
         public static void SetLocalizationSource(LocalizationSource _source)
         {
-            if (ReferenceEquals(localizationSource, _source))
+            if (_source == null || ReferenceEquals(localizationSource, _source))
             {
                 return;
             }
 
-            clearCurrentSourceSubscriptions();
-
             localizationSource = _source;
             localizationSource.Initialize();
-            localizationSource.LanguageList.OnLanguageChanged += onLanguageChanged;
 
             OnLocalizationChanged?.Invoke();
         }
 
-        private static void clearCurrentSourceSubscriptions()
+        public static void SetLanguage(Language _language)
         {
-            if (localizationSource != null)
+            if (currentLanguage == _language)
             {
-                localizationSource.LanguageList.OnLanguageChanged -= onLanguageChanged;
+                return;
             }
-        }
 
-        private static void onLanguageChanged()
-        {
+            currentLanguage = _language;
             OnLocalizationChanged?.Invoke();
         }
     }
